@@ -120,3 +120,210 @@
             background-color: var(--wrong);
             border-color: var(--wrong);
             color: white;
+        }
+
+        /* 錯題回顧設計 */
+        .review-card {
+            background-color: #FFF3E0;
+            border-left: 5px solid var(--primary);
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: left;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .review-card .question {
+            font-weight: bold;
+            color: var(--secondary);
+            font-size: 1.1em;
+        }
+
+        .review-card .explanation {
+            margin-top: 10px;
+            font-size: 0.95em;
+            color: #444;
+        }
+        
+        .review-card .evidence {
+            margin-top: 8px;
+            padding: 8px;
+            background-color: var(--evidence-bg);
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #2E7D32;
+            border-left: 3px solid #4CAF50;
+        }
+
+        #progress {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="start-screen" class="screen active">
+        <h1>🏃‍♂️ 健康知識挑戰賽 🍎</h1>
+        <p>準備好測試你的健康力了嗎？<br>讓我們看看你對「85210」策略有多了解！</p>
+        <button class="btn" onclick="startGame()">開始挑戰 🚀</button>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div id="progress">題目 1 / 3</div>
+        <h2 id="question-text">題目文字會在這裡</h2>
+        <div class="options-container" id="options-container">
+            </div>
+    </div>
+
+    <div id="result-screen" class="screen">
+        <h1>🎉 挑戰完成！</h1>
+        <p>你的得分是：<span id="score-display" style="font-size: 2.5em; font-weight: bold; color: var(--primary);">0</span> / 100</p>
+        <div id="result-message"></div>
+        <button class="btn" id="review-btn" onclick="showReview()">查看錯誤與實證解析 💡</button>
+        <button class="btn" style="background-color: var(--secondary); margin-top: 10px;" onclick="restartGame()">再玩一次 🔄</button>
+    </div>
+
+    <div id="review-screen" class="screen">
+        <h2>📝 錯題與實證筆記</h2>
+        <div id="review-container">
+            </div>
+        <button class="btn" onclick="restartGame()">重新挑戰 🚀</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            question: "關於「85210」健康密碼，其中的「8」代表什麼？",
+            options: ["每天喝8杯水", "每天睡足8小時", "每天走8000步", "每天看書80分鐘"],
+            answer: 1, 
+            explanation: "「8」代表每天要睡足 8 小時！充足的睡眠有助於大腦休息與促進生長發育。",
+            evidence: "實證研究指出：睡眠不足會干擾內分泌系統，導致瘦素分泌減少、飢餓素增加，進而提高學童兒童期肥胖的風險。"
+        },
+        {
+            question: "「85210」中的「5」是指每天要吃幾份蔬果？",
+            options: ["3份蔬菜2份水果", "5份都是蔬菜", "隨便挑5種顏色的食物", "5份都是水果"],
+            answer: 0,
+            explanation: "「5」代表天天 5 蔬果（3 份蔬菜 + 2 份水果），提供豐富維生素和膳食纖維。",
+            evidence: "實證研究指出：充足的膳食纖維能促進腸道蠕動，改變腸道菌相，有效預防便秘並降低慢性疾病的發生率。"
+        },
+        {
+            question: "為了保護眼睛和維持健康，每天觀看螢幕（手機、電腦）的時間「2」應該限制在多久以內？",
+            options: ["20分鐘", "2小時", "200分鐘", "只要休息2次就好"],
+            answer: 1,
+            explanation: "「2」代表觀看 3C 螢幕的時間每天少於 2 小時。看太久容易造成視力受損。",
+            evidence: "實證研究指出：長時間久坐觀看螢幕會排擠身體活動量（Physical Activity），是導致學童體適能下降與過重的重要獨立危險因子。"
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let incorrectAnswers = []; 
+    const scorePerQuestion = Math.round(100 / quizData.length);
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function startGame() {
+        currentQuestionIndex = 0;
+        score = 0;
+        incorrectAnswers = [];
+        loadQuestion();
+        showScreen('quiz-screen');
+    }
+
+    function loadQuestion() {
+        const currentQuiz = quizData[currentQuestionIndex];
+        document.getElementById('progress').innerText = `題目 ${currentQuestionIndex + 1} / ${quizData.length}`;
+        document.getElementById('question-text').innerText = currentQuiz.question;
+        
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = ''; 
+
+        currentQuiz.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.innerText = option;
+            button.classList.add('option-btn');
+            button.onclick = () => checkAnswer(index, button);
+            optionsContainer.appendChild(button);
+        });
+    }
+
+    function checkAnswer(selectedIndex, buttonElement) {
+        const allButtons = document.querySelectorAll('.option-btn');
+        allButtons.forEach(btn => btn.style.pointerEvents = 'none');
+
+        const currentQuiz = quizData[currentQuestionIndex];
+
+        if (selectedIndex === currentQuiz.answer) {
+            buttonElement.classList.add('correct');
+            score += scorePerQuestion;
+        } else {
+            buttonElement.classList.add('wrong');
+            allButtons[currentQuiz.answer].classList.add('correct');
+            incorrectAnswers.push(currentQuiz);
+        }
+
+        if(currentQuestionIndex === quizData.length - 1 && score > 90) score = 100;
+
+        setTimeout(() => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }, 1200);
+    }
+
+    function showResults() {
+        document.getElementById('score-display').innerText = score;
+        const msgElement = document.getElementById('result-message');
+        const reviewBtn = document.getElementById('review-btn');
+
+        if (score === 100) {
+            msgElement.innerHTML = "<h3>太棒了！你是健康知識大師 🏆</h3><p>你完全掌握了健康密碼！</p>";
+            reviewBtn.style.display = 'none'; 
+        } else {
+            msgElement.innerHTML = "<h3>做得很棒！但還有進步空間喔 💪</h3><p>來看看哪些概念還可以再加強吧！</p>";
+            reviewBtn.style.display = 'block';
+        }
+
+        showScreen('result-screen');
+    }
+
+    function showReview() {
+        const reviewContainer = document.getElementById('review-container');
+        reviewContainer.innerHTML = ''; 
+
+        incorrectAnswers.forEach((item) => {
+            const card = document.createElement('div');
+            card.classList.add('review-card');
+            
+            card.innerHTML = `
+                <div class="question">Q: ${item.question}</div>
+                <div style="color: var(--wrong); margin-top: 5px;">❌ 你的答案答錯了</div>
+                <div style="color: var(--correct); margin-top: 5px; font-weight: bold;">✅ 正確答案：${item.options[item.answer]}</div>
+                <div class="explanation">💡 <b>解析：</b>${item.explanation}</div>
+                <div class="evidence">🔍 <b>背後實證：</b>${item.evidence}</div>
+            `;
+            reviewContainer.appendChild(card);
+        });
+
+        showScreen('review-screen');
+    }
+
+    function restartGame() {
+        showScreen('start-screen');
+    }
+</script>
+
+</body>
+</html>
