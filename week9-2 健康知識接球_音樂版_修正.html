@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>健康知識接球</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:#060D1A;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:8px;color:#fff}
+h1{font-size:16px;font-weight:700;color:#A78BFA;margin-bottom:8px;letter-spacing:.08em;text-align:center}
+
+/* 統計列 - 橫排在最上方 */
+.stats-bar{display:flex;gap:6px;width:100%;max-width:480px;margin-bottom:8px}
+.panel{background:#1E293B;border-radius:8px;border:1px solid #334155;padding:6px 8px;flex:1;text-align:center}
+.ptitle{font-size:9px;font-weight:700;color:#64748B;letter-spacing:.06em;margin-bottom:2px}
+.pval{font-size:16px;font-weight:700;color:#A78BFA;line-height:1}
+.psub{font-size:9px;color:#64748B;margin-top:1px}
+
+/* 遊戲主區 */
+.game-row{display:flex;align-items:flex-start;justify-content:center;gap:0;width:100%;max-width:480px}
+.canvas-wrap{position:relative;display:inline-block;flex-shrink:0}
+canvas{display:block;border-radius:6px 0 0 6px}
+
+/* 訊息視窗 - 緊貼右側 */
+.fb{background:#1E293B;border-radius:0 8px 8px 0;border:1px solid #334155;border-left:none;padding:10px 10px;font-size:11px;color:#64748B;line-height:1.7;width:110px;align-self:stretch;display:flex;align-items:center;word-break:break-all}
+.fb.ok{background:#064E3B;border-color:#10B981;color:#6EE7B7}
+.fb.ng{background:#450A0A;border-color:#EF4444;color:#FCA5A5}
+
+/* overlay */
+.overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(6,13,26,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px 0 0 6px;gap:8px;padding:16px;overflow-y:auto}
+.otitle{font-size:17px;font-weight:700;color:#A78BFA;text-align:center}
+.osub{font-size:11px;color:#94A3B8;text-align:center;line-height:1.9}
+.bbtn{padding:11px 24px;border-radius:10px;border:none;background:#7C3AED;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;flex-shrink:0}
+.bbtn:active{transform:scale(.97)}
+
+/* 方向鍵 - 大按鈕手機好按 */
+.dpad{display:flex;gap:8px;justify-content:center;margin-top:10px;width:100%;max-width:480px}
+.dbtn{flex:1;max-width:100px;height:54px;border-radius:10px;border:1px solid #475569;background:#1E293B;color:#94A3B8;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s;-webkit-tap-highlight-color:transparent}
+.dbtn:active{background:#334155;transform:scale(.93)}
+
+/* 控制列 */
+.ctrl{display:flex;gap:6px;justify-content:center;margin-top:8px;width:100%;max-width:480px}
+.cbtn{padding:8px 18px;border-radius:8px;border:1px solid #334155;background:#1E293B;color:#94A3B8;font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;-webkit-tap-highlight-color:transparent}
+.cbtn:active{background:#334155}
+.mute-btn{padding:8px 12px;border-radius:8px;border:1px solid #334155;background:#1E293B;color:#94A3B8;font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hint-btn{color:#FBBF24!important;border-color:#92400E!important;background:#1C1408!important}
+.hint-btn:active{background:#2D1F0A!important}
+.hint-btn.used{color:#64748B!important;border-color:#334155!important;background:#1E293B!important}
+.close-btn{padding:8px 12px;border-radius:8px;border:1px solid #7F1D1D;background:#1C0A0A;color:#F87171;font-size:14px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;-webkit-tap-highlight-color:transparent}
+.close-btn:active{background:#450A0A}
+
+/* 手機版 canvas 自適應 */
+@media(max-width:420px){
+  canvas{width:240px!important;height:375px!important}
+  .fb{width:90px;font-size:10px}
+  .dbtn{height:58px;font-size:24px}
+  h1{font-size:14px}
+}
+@media(min-width:421px){
+  canvas{width:280px!important;height:440px!important}
+  .fb{width:120px}
+}
+</style>
+</head>
+<body>
+<h1>⚕️ 健康知識接球</h1>
+
+<!-- 統計列橫排 -->
+<div class="stats-bar">
+  <div class="panel"><div class="ptitle">得分</div><div class="pval" id="sc">0</div></div>
+  <div class="panel"><div class="ptitle">連勝</div><div class="pval" id="streak">0</div><div class="psub">最高<span id="best">0</span></div></div>
+  <div class="panel"><div class="ptitle">答對</div><div class="pval" id="correct">0</div></div>
+  <div class="panel"><div class="ptitle">危險</div><div class="pval" id="floor">0</div><div class="psub">答錯+1層</div></div>
+</div>
+
+<!-- 遊戲畫面 + 訊息視窗 -->
+<div class="game-row">
+  <div class="canvas-wrap">
+    <canvas id="gc" width="280" height="440"></canvas>
+    <div class="overlay" id="ov">
+      <div class="otitle">健康知識接球</div>
+      <div class="osub">
+        問題方塊從左方落下<br>
+        ← → 移到正確答案下方<br>
+        答對 → 得分！<br>
+        答錯 → 底部墊高一層<br>
+        堆到頂端 → 遊戲結束！
+      </div>
+      <button class="bbtn" id="startbtn">開始遊戲 ▶</button>
+    </div>
+  </div>
+  <div class="fb" id="fb">移動方塊到正確答案上方！</div>
+</div>
+
+<!-- 大方向鍵（手機友善）-->
+<div class="dpad">
+  <button class="dbtn" id="dl">←</button>
+  <button class="dbtn" id="dd">⬇</button>
+  <button class="dbtn" id="dr">→</button>
+</div>
+
+<!-- 控制列 -->
+<div class="ctrl">
+  <button class="cbtn" id="pbtn">暫停</button>
+  <button class="cbtn" id="rbtn">重來</button>
+  <button class="cbtn hint-btn" id="hintbtn">💡 提示</button>
+  <button class="mute-btn" id="mutebtn">🔊</button>
+  <button class="close-btn" id="closebtn">✕</button>
+</div>
+<div class="ctrl" style="margin-top:6px">
+  <select id="musicsel" style="flex:1;max-width:320px;padding:7px 10px;border-radius:8px;border:1px solid #334155;background:#1E293B;color:#94A3B8;font-size:12px;font-family:'Noto Sans TC',sans-serif;cursor:pointer">
+    <option value="0">🎵 輕快琶音（預設）</option>
+    <option value="1">🏰 天空之城</option>
+    <option value="2">🌙 夜晚爵士</option>
+    <option value="3">⚡ 電子節拍</option>
+    <option value="4">🌸 日式和風</option>
+    <option value="5">🎮 8-bit 復古</option>
+    <option value="6">🌊 海浪冥想</option>
+    <option value="7">🔥 拉丁熱情</option>
+    <option value="8">❄️ 冬日鋼琴</option>
+    <option value="9">🚀 太空氛圍</option>
+  </select>
+</div>
+
+<script>
+const cv=document.getElementById('gc');
+const cx=cv.getContext('2d');
+const W=280,H=440,COLS=4,CW=70,ANS_H=60,BLOCK_W=62,BLOCK_H=46;
+const LAYER_H=18;
+const MAX_LAYERS=Math.floor((H-ANS_H-BLOCK_H)/LAYER_H);
+
+// ── Audio ──────────────────────────────────────────────────────────
+const AC=new(window.AudioContext||window.webkitAudioContext)();
+let muted=false;
+
+function beep(freq,dur,type,vol,delay){
+  if(muted)return;
+  type=type||'square';vol=vol||0.45;delay=delay||0;
+  const o=AC.createOscillator(),g=AC.createGain(),comp=AC.createDynamicsCompressor();
+  o.connect(g);g.connect(comp);comp.connect(AC.destination);
+  o.type=type;o.frequency.value=freq;
+  const t=AC.currentTime+delay;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.start(t);o.stop(t+dur+0.05);
+}
+
+function sfxCorrect(){
+  beep(523,.1,'sine',.55);
+  beep(659,.1,'sine',.55,.1);
+  beep(784,.18,'sine',.6,.2);
+  beep(1047,.2,'sine',.5,.3);
+}
+function sfxWrong(){
+  beep(220,.15,'sawtooth',.6);
+  beep(180,.25,'sawtooth',.55,.12);
+  beep(150,.3,'sawtooth',.5,.25);
+}
+function sfxLand(){
+  beep(400,.04,'square',.4);
+  beep(300,.06,'square',.35,.03);
+}
+function sfxDanger(intensity){
+  beep(880+intensity*440,.06,'square',.5+intensity*.3);
+}
+function sfxDead(){
+  [330,294,262,220,196,175,147].forEach(function(f,i){beep(f,.3,'sawtooth',.6,i*.14);});
+}
+
+// ── BGM 系統（10種音樂）────────────────────────────────────────────
+let bgPlaying=false,bgTimer=null,bgStep=0,currentMusic=0;
+
+// 音符頻率對照
+var NOTE={
+  C4:261.6,D4:293.7,E4:329.6,F4:349.2,G4:392,A4:440,B4:493.9,
+  C5:523.3,D5:587.3,E5:659.3,F5:698.5,G5:784,A5:880,B5:987.8,
+  C6:1046.5,D6:1174.7,E6:1318.5,
+  Bb4:466.2,Fs4:369.9,Gs4:415.3,Eb4:311.1,Bb3:233.1,F4s:369.9,
+  Cs5:554.4,Ds5:622.3,
+  G3:196,A3:220,B3:246.9,C3:130.8,D3:146.8,E3:164.8,F3:174.6
+};
+
+// 10種BGM定義 [{notes:[{f,d,v,t}],bpm,type}]
+// f=頻率, d=音長(秒), v=音量, t=音色, dl=delay
+var MUSICS=[
+  // 0: 輕快琶音（預設）
+  {bpm:380,type:'triangle',vol:0.1,seq:[
+    [523,659,784],[659,784,1047],[784,1047,1319],[523,784,1047],
+    [494,659,988],[440,659,880],[392,523,784],[349,523,698]
+  ],chord:true},
+  // 1: 天空之城「君をのせて」久石讓
+  // 主旋律 D大調：D E F# G A B C# D
+  {bpm:500,type:'sine',vol:0.14,seq:[
+    [[NOTE.D4,.3],[NOTE.E4,.3],[NOTE.Fs4,.3]],
+    [[NOTE.G4,.6],[NOTE.Fs4,.3]],
+    [[NOTE.E4,.3],[NOTE.Fs4,.3],[NOTE.G4,.3]],
+    [[NOTE.A4,.9]],
+    [[NOTE.A4,.3],[NOTE.B4,.3],[NOTE.A4,.3]],
+    [[NOTE.G4,.6],[NOTE.Fs4,.3]],
+    [[NOTE.E4,.6],[NOTE.D4,.3]],
+    [[NOTE.D4,.9]],
+    [[NOTE.D4,.3],[NOTE.E4,.3],[NOTE.Fs4,.3]],
+    [[NOTE.G4,.6],[NOTE.A4,.3]],
+    [[NOTE.B4,.3],[NOTE.A4,.3],[NOTE.G4,.3]],
+    [[NOTE.A4,.9]],
+    [[NOTE.Fs4,.3],[NOTE.G4,.3],[NOTE.A4,.3]],
+    [[NOTE.B4,.6],[NOTE.A4,.3]],
+    [[NOTE.G4,.3],[NOTE.Fs4,.3],[NOTE.E4,.3]],
+    [[NOTE.D4,.9]]
+  ],melody:true},
+  // 2: 夜晚爵士
+  {bpm:420,type:'triangle',vol:0.1,seq:[
+    [[NOTE.E4,.3],[NOTE.G4,.15],[NOTE.Bb4,.15],[NOTE.D5,.3]],
+    [[NOTE.D4,.3],[NOTE.F4s,.15],[NOTE.A4,.15],[NOTE.C5,.3]],
+    [[NOTE.C4,.3],[NOTE.E4,.15],[NOTE.G4,.15],[NOTE.Bb4,.3]],
+    [[NOTE.A3,.3],[NOTE.C4,.15],[NOTE.E4,.15],[NOTE.G4,.3]],
+    [[NOTE.Bb3,.3],[NOTE.D4,.15],[NOTE.F4s,.15],[NOTE.A4,.3]],
+    [[NOTE.G3,.3],[NOTE.B3,.15],[NOTE.D4,.15],[NOTE.F4s,.3]],
+    [[NOTE.F3,.3],[NOTE.A3,.15],[NOTE.C4,.15],[NOTE.E4,.3]],
+    [[NOTE.E3,.3],[NOTE.G3,.15],[NOTE.B3,.15],[NOTE.D4,.3]]
+  ],melody:true},
+  // 3: 電子節拍
+  {bpm:250,type:'square',vol:0.08,seq:[
+    [[NOTE.C5,.15],[NOTE.C5,.15],[NOTE.G4,.15],[NOTE.E5,.15]],
+    [[NOTE.A4,.15],[NOTE.A4,.15],[NOTE.F4s,.15],[NOTE.D5,.15]],
+    [[NOTE.G4,.15],[NOTE.G4,.15],[NOTE.E4,.15],[NOTE.C5,.15]],
+    [[NOTE.F4s,.15],[NOTE.F4s,.15],[NOTE.D4,.15],[NOTE.A4,.15]],
+    [[NOTE.E4,.15],[NOTE.E4,.15],[NOTE.C4,.15],[NOTE.G4,.15]],
+    [[NOTE.D4,.15],[NOTE.D4,.15],[NOTE.B3,.15],[NOTE.F4s,.15]],
+    [[NOTE.C5,.15],[NOTE.G4,.15],[NOTE.E5,.15],[NOTE.C6,.15]],
+    [[NOTE.B4,.15],[NOTE.F4s,.15],[NOTE.D5,.15],[NOTE.B5,.15]]
+  ],melody:true},
+  // 4: 日式和風
+  {bpm:600,type:'triangle',vol:0.11,seq:[
+    [[NOTE.D4,.5],[NOTE.E4,.25],[NOTE.G4,.5]],
+    [[NOTE.A4,.5],[NOTE.G4,.25],[NOTE.E4,.5]],
+    [[NOTE.D4,.5],[NOTE.G4,.25],[NOTE.A4,.5]],
+    [[NOTE.B4,.5],[NOTE.A4,.25],[NOTE.G4,.5]],
+    [[NOTE.E4,.5],[NOTE.D4,.25],[NOTE.E4,.5]],
+    [[NOTE.G4,.5],[NOTE.A4,.25],[NOTE.B4,.5]],
+    [[NOTE.A4,.5],[NOTE.G4,.5],[NOTE.E4,.5]],
+    [[NOTE.D4,1.0]]
+  ],melody:true},
+  // 5: 8-bit 復古
+  {bpm:300,type:'square',vol:0.08,seq:[
+    [[NOTE.C5,.2],[NOTE.E5,.2],[NOTE.G5,.2],[NOTE.C6,.2]],
+    [[NOTE.B4,.2],[NOTE.D5,.2],[NOTE.F5s,.2],[NOTE.B5,.2]],
+    [[NOTE.A4,.2],[NOTE.C5,.2],[NOTE.E5,.2],[NOTE.A5,.2]],
+    [[NOTE.G4,.2],[NOTE.B4,.2],[NOTE.D5,.2],[NOTE.G5,.2]],
+    [[NOTE.F4s,.2],[NOTE.A4,.2],[NOTE.C5,.2],[NOTE.F5s,.2]],
+    [[NOTE.E4,.2],[NOTE.G4,.2],[NOTE.B4,.2],[NOTE.E5,.2]],
+    [[NOTE.D4,.2],[NOTE.F4s,.2],[NOTE.A4,.2],[NOTE.D5,.2]],
+    [[NOTE.C4,.2],[NOTE.E4,.2],[NOTE.G4,.2],[NOTE.C5,.2]]
+  ],melody:true},
+  // 6: 海浪冥想（低頻緩慢）
+  {bpm:900,type:'sine',vol:0.09,seq:[
+    [[NOTE.C4,.8],[NOTE.G4,.8]],
+    [[NOTE.A3,.8],[NOTE.E4,.8]],
+    [[NOTE.F3,.8],[NOTE.C4,.8]],
+    [[NOTE.G3,.8],[NOTE.D4,.8]],
+    [[NOTE.E3,.8],[NOTE.B3,.8]],
+    [[NOTE.D3,.8],[NOTE.A3,.8]],
+    [[NOTE.C3,.8],[NOTE.G3,.8]],
+    [[NOTE.G3,.8],[NOTE.E4,.8]]
+  ],melody:true},
+  // 7: 拉丁熱情
+  {bpm:280,type:'triangle',vol:0.1,seq:[
+    [[NOTE.E4,.2],[NOTE.G4,.1],[NOTE.A4,.2],[NOTE.G4,.1],[NOTE.E4,.2]],
+    [[NOTE.D4,.2],[NOTE.F4s,.1],[NOTE.G4,.2],[NOTE.F4s,.1],[NOTE.D4,.2]],
+    [[NOTE.C4,.2],[NOTE.E4,.1],[NOTE.F4s,.2],[NOTE.E4,.1],[NOTE.C4,.2]],
+    [[NOTE.B3,.2],[NOTE.D4,.1],[NOTE.E4,.2],[NOTE.D4,.1],[NOTE.B3,.2]],
+    [[NOTE.A3,.2],[NOTE.C4,.1],[NOTE.D4,.2],[NOTE.C4,.1],[NOTE.A3,.2]],
+    [[NOTE.G3,.2],[NOTE.B3,.1],[NOTE.C4,.2],[NOTE.B3,.1],[NOTE.G3,.2]],
+    [[NOTE.E4,.3],[NOTE.A4,.3],[NOTE.E5,.3]],
+    [[NOTE.D4,.3],[NOTE.G4,.3],[NOTE.D5,.3]]
+  ],melody:true},
+  // 8: 冬日鋼琴
+  {bpm:650,type:'sine',vol:0.12,seq:[
+    [[NOTE.C4,.6],[NOTE.E4,.3],[NOTE.G4,.6]],
+    [[NOTE.B3,.6],[NOTE.D4,.3],[NOTE.F4s,.6]],
+    [[NOTE.A3,.6],[NOTE.C4,.3],[NOTE.E4,.6]],
+    [[NOTE.G3,.6],[NOTE.B3,.3],[NOTE.D4,.6]],
+    [[NOTE.F3,.6],[NOTE.A3,.3],[NOTE.C4,.6]],
+    [[NOTE.E3,.6],[NOTE.G3,.3],[NOTE.B3,.6]],
+    [[NOTE.D3,.6],[NOTE.F3,.3],[NOTE.A3,.6]],
+    [[NOTE.C3,.9],[NOTE.G3,.9]]
+  ],melody:true},
+  // 9: 太空氛圍
+  {bpm:800,type:'sine',vol:0.08,seq:[
+    [[NOTE.C4,.7],[NOTE.G4,.7]],
+    [[NOTE.Eb4,.7],[NOTE.Bb4,.7]],
+    [[NOTE.F4s,.7],[NOTE.C5,.7]],
+    [[NOTE.A4,.7],[NOTE.Eb5,.7]],
+    [[NOTE.G4,.7],[NOTE.D5,.7]],
+    [[NOTE.B4,.7],[NOTE.F5s,.7]],
+    [[NOTE.E4,.7],[NOTE.B4,.7]],
+    [[NOTE.Gs4,.7],[NOTE.Eb5,.7]]
+  ],melody:true}
+];
+
+function playNote(freq,dur,type,vol,delay){
+  if(muted||freq<=0)return;
+  type=type||'sine';vol=vol||0.1;delay=delay||0;
+  var o=AC.createOscillator(),g=AC.createGain(),comp=AC.createDynamicsCompressor();
+  o.connect(g);g.connect(comp);comp.connect(AC.destination);
+  o.type=type;o.frequency.value=freq;
+  var t=AC.currentTime+delay;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+0.015);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.start(t);o.stop(t+dur+0.05);
+}
+
+function startBGM(){
+  if(muted||bgPlaying)return;
+  bgPlaying=true;bgStep=0;
+  var m=MUSICS[currentMusic];
+  var playStep=function(){
+    if(!bgPlaying)return;
+    var seg=m.seq[bgStep%m.seq.length];bgStep++;
+    if(m.chord){
+      // 和弦模式（原始琶音）
+      seg.forEach(function(f,i){
+        playNote(f,0.22,m.type,m.vol,i*0.08);
+      });
+      bgTimer=setTimeout(playStep,m.bpm);
+    } else if(m.melody){
+      // 旋律模式
+      var totalDelay=0;
+      seg.forEach(function(note){
+        var f=note[0],d=note[1];
+        playNote(f,d*0.85,m.type,m.vol,totalDelay);
+        totalDelay+=d;
+      });
+      bgTimer=setTimeout(playStep,Math.round(totalDelay*1000));
+    }
+  };
+  playStep();
+}
+function stopBGM(){bgPlaying=false;clearTimeout(bgTimer);}
+
+document.getElementById('musicsel').onchange=function(){
+  currentMusic=parseInt(this.value);
+  if(bgPlaying){stopBGM();if(!muted&&!over&&!paused)startBGM();}
+};
+
+document.getElementById('mutebtn').onclick=function(){
+  muted=!muted;
+  document.getElementById('mutebtn').textContent=muted?'🔇':'🔊';
+  if(muted){stopBGM();stopDangerBeeps();}
+  else if(!over&&!paused){startBGM();var d=floorLayers/MAX_LAYERS;if(d>=0.5)startDangerBeeps(d);}
+};
+
+let dangerTimer=null;
+function startDangerBeeps(intensity){
+  stopDangerBeeps();
+  var iv=Math.max(220,580-Math.round(intensity*420));
+  dangerTimer=setInterval(function(){if(!muted&&!paused&&!over)sfxDanger(intensity);},iv);
+}
+function stopDangerBeeps(){clearInterval(dangerTimer);dangerTimer=null;}
+
+// ── Questions ──────────────────────────────────────────────────────
+const QS=[
+  {q:'BMI 正常範圍？',o:['<18.5','18.5-24','24-27','>30'],a:1,e:'18.5–24為正常體重範圍'},
+  {q:'每天建議步數？',o:['3000步','5000步','8000步','12000步'],a:2,e:'WHO建議每天至少8000步'},
+  {q:'成人建議睡眠？',o:['5小時','6小時','7-9小時','10小時'],a:2,e:'建議7-9小時優質睡眠'},
+  {q:'每日建議飲水？',o:['500mL','1L','2L','4L'],a:2,e:'每日建議飲水約2000mL'},
+  {q:'有氧運動心率？',o:['20-40%','40-55%','60-80%','90%+'],a:2,e:'有效有氧需達最大心率60-80%'},
+  {q:'最益心血管的油？',o:['豬油','奶油','橄欖油','棕櫚油'],a:2,e:'橄欖油富含單元不飽和脂肪酸'},
+  {q:'台灣肥胖BMI？',o:['24','27','30','35'],a:1,e:'BMI≥27為台灣輕度肥胖標準'},
+  {q:'量血壓前靜坐？',o:['不用','1分鐘','5分鐘','20分鐘'],a:2,e:'靜坐5分鐘讓數值更準確'},
+  {q:'膳食纖維最多？',o:['白飯','雞肉','燕麥','牛奶'],a:2,e:'燕麥富含β-葡聚醣'},
+  {q:'正常收縮壓<？',o:['90','100','120','140'],a:2,e:'正常血壓收縮壓<120mmHg'},
+  {q:'每週有氧時間？',o:['30分','60分','150分','300分'],a:2,e:'WHO建議每週至少150分鐘'},
+  {q:'夜盲缺乏維生素？',o:['維A','維B','維C','維D'],a:0,e:'維生素A是合成視紫質的原料'},
+  {q:'每日鈉建議<？',o:['1000mg','2000mg','3000mg','5g'],a:1,e:'WHO建議每日鈉<2000mg'},
+  {q:'正常舒張壓<？',o:['60','70','80','90'],a:2,e:'正常血壓舒張壓<80mmHg'},
+  {q:'水佔體重比例？',o:['40%','50%','60%','70%'],a:2,e:'成人體重約60%是水分'},
+  {q:'60kg/170cm BMI？',o:['18.4','20.8','22.5','25.1'],a:1,e:'60÷1.7²≈20.8，正常範圍'},
+  {q:'每日蔬菜建議？',o:['1份','2份','3份','5份'],a:2,e:'衛福部建議每日3份蔬菜'},
+  {q:'骨質疏鬆補充？',o:['維A','維B','維C','維D+鈣'],a:3,e:'維D幫助鈣吸收，預防骨質疏鬆'},
+  {q:'心跳正常範圍？',o:['40-50','60-100','100-120','120-150'],a:1,e:'成人靜息心率60-100次/分'},
+  {q:'高血壓收縮壓≥？',o:['110','120','130','140'],a:3,e:'收縮壓≥140mmHg為高血壓'},
+  {q:'糖尿病空腹血糖？',o:['<80','<100','≥126','≥200'],a:2,e:'空腹血糖≥126mg/dL可診斷糖尿病'},
+  {q:'成人正常體溫？',o:['35-36°C','36-37.5°C','37.5-38°C','38-39°C'],a:1,e:'成人正常體溫約36-37.5°C'},
+  {q:'台灣十大死因首位？',o:['心臟病','癌症','肺炎','腦血管疾病'],a:1,e:'惡性腫瘤（癌症）長期位居台灣死因首位'},
+  {q:'預防心血管疾病？',o:['多吃紅肉','規律運動','少喝水','多靜臥'],a:1,e:'規律運動是預防心血管疾病的重要方法'},
+  {q:'大腸癌篩檢工具？',o:['胃鏡','糞便潛血','X光','超音波'],a:1,e:'糞便潛血檢查是大腸癌的初步篩檢工具'},
+  {q:'子宮頸癌疫苗？',o:['A型肝炎疫苗','HPV疫苗','流感疫苗','肺炎疫苗'],a:1,e:'HPV疫苗可預防人類乳突病毒，降低子宮頸癌風險'},
+  {q:'正常空腹血糖？',o:['<70','70-100','100-126','≥126'],a:1,e:'正常空腹血糖為70-100mg/dL'},
+  {q:'BMI過輕標準？',o:['<16','<17','<18.5','<20'],a:2,e:'BMI<18.5為體重過輕'},
+  {q:'三高是指？',o:['高血壓高血糖高血脂','高血壓高體溫高血脂','高血糖高體重高血脂','高血壓高血糖高尿酸'],a:0,e:'三高指高血壓、高血糖（糖尿病）、高血脂'},
+  {q:'預防齲齒最重要？',o:['多吃糖果','定期刷牙用牙線','少喝水','多嚼口香糖'],a:1,e:'刷牙和使用牙線是預防齲齒最基本的方法'},
+  {q:'流感疫苗建議？',o:['每5年','每3年','每2年','每年'],a:3,e:'流感病毒每年變異，建議每年接種最新疫苗'},
+  {q:'洗手步驟幾步？',o:['3步','5步','6步','10步'],a:2,e:'正確洗手有6步驟（內外夾弓大立腕）'},
+  {q:'成人血脂LDL正常？',o:['<100','<130','<160','<200'],a:1,e:'LDL膽固醇建議<130mg/dL'},
+  {q:'乳癌自我檢查？',o:['每年一次','每月一次','每週一次','每天一次'],a:1,e:'建議每月月經結束後1週進行乳房自我檢查'},
+  {q:'肺結核傳播方式？',o:['接觸傳染','飛沫傳染','血液傳染','糞口傳染'],a:1,e:'肺結核主要透過飛沫傳播'},
+  {q:'愛滋病毒HIV傳播？',o:['握手','蚊蟲叮咬','血液體液','空氣飛沫'],a:2,e:'HIV主要透過血液、性行為、母嬰垂直傳染'},
+  {q:'腸病毒好發季節？',o:['春冬','夏秋','全年','只有夏天'],a:1,e:'腸病毒好發於夏秋季節（4-9月）'},
+  {q:'二手菸危害？',o:['無危害','比一手菸小','比一手菸大','相同'],a:2,e:'二手菸含更多有害物質，危害更大'},
+  {q:'吸菸導致哪些癌？',o:['只有肺癌','只有口腔癌','肺癌口腔癌食道癌等多種','只有膀胱癌'],a:2,e:'吸菸與肺癌、口腔癌、食道癌、膀胱癌等多種癌症有關'},
+  {q:'憂鬱症診斷標準？',o:['情緒低落1天','持續2週以上低落','偶爾難過','只影響睡眠'],a:1,e:'憂鬱症診斷需持續2週以上情緒低落，影響日常功能'},
+  {q:'洗手最有效去除？',o:['過敏原','細菌病毒','農藥','重金屬'],a:1,e:'正確洗手可有效去除手上的細菌和病毒'},
+  {q:'代謝症候群條件？',o:['符合1項','符合2項','符合3項以上','符合全部'],a:2,e:'腰圍、血壓、血糖、血脂4項中符合3項即為代謝症候群'},
+  {q:'維生素C主要功能？',o:['強化骨骼','抗氧化免疫','護眼','補血'],a:1,e:'維生素C具抗氧化作用，促進膠原蛋白合成，增強免疫力'},
+  {q:'缺鐵性貧血補充？',o:['鈣','鐵+維生素C','維生素D','鋅'],a:1,e:'補充鐵質搭配維生素C可提升鐵質吸收率'},
+  {q:'預防骨質疏鬆？',o:['少運動','避免日曬','補充鈣和維D','多吃高鹽食物'],a:2,e:'補充鈣質和維生素D，加上負重運動，可預防骨質疏鬆'},
+  {q:'肥胖增加哪些風險？',o:['只有外觀問題','心血管糖尿病癌症','只有關節問題','記憶力下降'],a:1,e:'肥胖顯著增加心血管疾病、第二型糖尿病、部分癌症風險'},
+  {q:'預防高血壓飲食？',o:['高鹽高脂','低鹽低脂多蔬果','多吃紅肉','少喝水'],a:1,e:'DASH飲食法：低鹽、低飽和脂肪、多蔬果，有助降血壓'},
+  {q:'糖尿病飲食原則？',o:['完全不吃澱粉','均衡飲食控制份量','多吃水果補充能量','只吃蛋白質'],a:1,e:'糖尿病飲食以均衡為主，控制碳水化合物份量'},
+  {q:'BMI計算方式？',o:['體重÷身高','體重÷身高²','體重×身高','體重²÷身高'],a:1,e:'BMI=體重(kg)÷身高(m)²'},
+  {q:'台灣子宮頸抹片？',o:['18歲起','30歲起','有性行為女性每年','45歲起'],a:2,e:'有性行為的女性建議每年做子宮頸抹片檢查'},
+  {q:'心肌梗塞症狀？',o:['只有胸痛','胸悶胸痛冒冷汗喘','只有背痛','只有噁心'],a:1,e:'心肌梗塞常見症狀包括胸悶胸痛、冒冷汗、呼吸困難'},
+  {q:'中風警示FAST？',o:['發燒過敏抽筋疲勞','臉歪手無力說話不清時間','食慾不振昏睡頭痛','發燒痙攣昏迷頭痛'],a:1,e:'FAST：臉部歪斜、手臂無力、說話不清、立即送醫'},
+  {q:'每日水果建議份數？',o:['1份','2份','3份','5份'],a:1,e:'衛福部建議每日攝取2份水果'},
+  {q:'蛋白質食物來源？',o:['米飯麵包','豆魚蛋肉','蔬菜水果','油脂堅果'],a:1,e:'豆類、魚類、蛋、肉類是優質蛋白質的主要來源'},
+  {q:'omega-3脂肪酸來源？',o:['豬油','奶油','深海魚類','葵花油'],a:2,e:'鮭魚、鯖魚等深海魚類富含omega-3脂肪酸'},
+  {q:'反式脂肪危害？',o:['增加好膽固醇','降低壞膽固醇','增加心血管風險','無危害'],a:2,e:'反式脂肪會升高LDL，增加心血管疾病風險'},
+  {q:'咖啡因每日建議<？',o:['100mg','200mg','400mg','600mg'],a:2,e:'健康成人每日咖啡因建議不超過400mg'},
+  {q:'鈣質最佳來源？',o:['紅肉','牛奶乳製品','蔬菜','穀類'],a:1,e:'牛奶、優格、起司等乳製品是鈣質最豐富的來源'},
+  {q:'腹式呼吸功效？',o:['增加肌力','舒緩壓力焦慮','改善視力','增加體重'],a:1,e:'腹式呼吸能活化副交感神經，有效舒緩壓力和焦慮'},
+  {q:'規律運動定義？',o:['偶爾運動','每週至少3次每次30分','每天2小時以上','只有週末運動'],a:1,e:'規律運動建議每週至少3-5次，每次30分鐘中等強度'},
+  {q:'拉伸運動時機？',o:['只在運動前','只在運動後','運動前後均可','只在睡前'],a:2,e:'運動前暖身拉伸、運動後放鬆拉伸，都有助於預防運動傷害'},
+  {q:'肌力訓練頻率？',o:['每天同一部位','每週同部位2-3次','每月一次','每週7次'],a:1,e:'肌力訓練建議每週每個部位訓練2-3次，中間需休息'},
+  {q:'久坐傷害？',o:['只有腰痛','代謝變慢增加疾病風險','無影響','只影響消化'],a:1,e:'久坐與心血管疾病、糖尿病、肥胖等風險上升有關'},
+  {q:'防曬係數SPF代表？',o:['防水能力','抵抗UVA','抵抗UVB倍數','保濕能力'],a:2,e:'SPF代表防UVB的效能倍數'},
+  {q:'CPR壓胸速率？',o:['每分鐘30下','每分鐘60下','每分鐘100-120下','每分鐘150下'],a:2,e:'CPR胸外按壓建議速率為每分鐘100-120下'},
+  {q:'AED使用時機？',o:['任何昏迷','心跳停止或心室顫動','只限醫護人員','只用於溺水'],a:1,e:'AED用於心跳停止或心室顫動患者，越快使用存活率越高'},
+  {q:'預防跌倒老人？',o:['減少活動','肌力訓練加環境改善','多臥床休息','避免外出'],a:1,e:'肌力訓練強化下肢力量，加上移除環境危險因子，有效預防跌倒'},
+  {q:'失智症早期症狀？',o:['只是正常老化','記憶退步影響日常','只是睡眠差','只是情緒問題'],a:1,e:'失智症早期症狀包括短期記憶喪失、語言困難、空間感變差'},
+  {q:'慢性腎臟病飲食？',o:['高蛋白高鉀','低蛋白低鹽控水分','多吃水果','高磷高鉀'],a:1,e:'慢性腎病需低蛋白、低鉀、低磷、低鈉飲食'},
+  {q:'台灣四癌篩檢不含？',o:['大腸癌','肝癌','子宮頸癌','乳癌'],a:1,e:'台灣四癌篩檢為大腸癌、子宮頸癌、乳癌、口腔癌（非肝癌）'},
+  {q:'口腔癌高危因子？',o:['喝水過多','嚼檳榔吸菸飲酒','過度運動','睡眠不足'],a:1,e:'嚼檳榔、吸菸、飲酒是口腔癌三大危險因子'},
+  {q:'日曬缺乏導致？',o:['維A缺乏','維B缺乏','維D缺乏','維C缺乏'],a:2,e:'日曬不足會導致維生素D缺乏，影響鈣吸收和骨骼健康'},
+  {q:'更年期常見症狀？',o:['體重下降','熱潮紅睡眠障礙情緒變化','視力下降','聽力下降'],a:1,e:'更年期常見症狀包括熱潮紅、盜汗、睡眠障礙、情緒起伏'},
+  {q:'壓力荷爾蒙是？',o:['胰島素','皮質醇','甲狀腺素','雌激素'],a:1,e:'皮質醇（Cortisol）是主要的壓力荷爾蒙'},
+  {q:'正念冥想功效？',o:['增加肌肉','降低壓力焦慮改善專注','改善視力','增加食慾'],a:1,e:'正念冥想有助降低壓力和焦慮，改善注意力和睡眠品質'},
+  {q:'食品標示必要項目？',o:['只需品名','品名成分份量營養標示等','只需熱量','只需有效期限'],a:1,e:'食品標示須包含品名、成分、淨重、製造商、有效日期、營養標示等'},
+  {q:'食物中毒預防？',o:['生熟食混放','低溫保存及徹底加熱','室溫放置','省略洗手'],a:1,e:'預防食物中毒：低溫保存、生熟食分開、徹底加熱'},
+  {q:'腸胃炎補充？',o:['只喝白開水','電解質補充液','大量運動飲料','高脂食物'],a:1,e:'腸胃炎時需補充電解質，避免脫水'},
+  {q:'肝炎B型傳染？',o:['空氣飛沫','血液體液母嬰','糞口途徑','蚊蟲叮咬'],a:1,e:'B型肝炎主要透過血液、體液、性行為及母嬰垂直傳染'},
+  {q:'胃潰瘍常見原因？',o:['多吃蔬菜','幽門螺旋桿菌或NSAID','飲水不足','睡眠過多'],a:1,e:'幽門螺旋桿菌感染和非類固醇抗炎藥（NSAID）是胃潰瘍主因'},
+  {q:'呼吸道感染預防？',o:['不戴口罩','勤洗手戴口罩保持距離','多聚集','忽視症狀'],a:1,e:'勤洗手、正確配戴口罩、保持社交距離是預防呼吸道感染的基本方法'},
+  {q:'台灣孕婦產檢次數？',o:['3次','5次','10次以上','依醫師決定'],a:2,e:'健保給付孕婦至少10次產前檢查'},
+  {q:'嬰兒哺乳建議？',o:['配方奶最好','純母乳哺育6個月','出生即添加副食品','3個月停止'],a:1,e:'WHO建議純母乳哺育至少6個月，之後添加副食品並繼續哺乳'},
+  {q:'台灣老年人定義？',o:['55歲以上','60歲以上','65歲以上','70歲以上'],a:2,e:'台灣及WHO定義65歲以上為老年人'},
+  {q:'社區衛生護理目標？',o:['治療個人疾病','促進社區整體健康','只服務慢性病患','只做篩檢'],a:1,e:'社區衛生護理以群體健康促進和疾病預防為核心目標'},
+  {q:'健康識能是指？',o:['閱讀能力','獲取理解運用健康資訊的能力','記憶力','學習速度'],a:1,e:'健康識能指個人獲取、理解和運用健康資訊以做出決策的能力'},
+  {q:'初段預防是指？',o:['早期治療','疾病發生前的預防','篩檢找出疾病','復健'],a:1,e:'初段預防在疾病發生前介入，如接種疫苗、健康促進'},
+  {q:'次段預防是指？',o:['病因預防','早期發現早期治療','復健','安寧療護'],a:1,e:'次段預防透過篩檢早期發現疾病，及時介入治療'},
+  {q:'三段預防是指？',o:['疫苗接種','篩檢','限制失能及復健','健康促進'],a:2,e:'三段預防針對已發病者，透過治療和復健減少失能'},
+  {q:'健康促進定義？',o:['只有醫療行為','使人增強控制改善健康的過程','只指運動','只指飲食'],a:1,e:'WHO定義健康促進為使人能夠增強對自身健康的控制並加以改善的過程'},
+  {q:'WHO成立年份？',o:['1945年','1948年','1960年','1970年'],a:1,e:'WHO於1948年4月7日正式成立'},
+  {q:'護理師洗手時機？',o:['只在接觸病人後','接觸前後等5個時機','只在進餐前','只在廁所後'],a:1,e:'WHO提倡5個洗手時機：接觸病患前後、無菌操作前、接觸體液後、接觸環境後'},
+  {q:'台灣菸害防制法？',o:['禁止所有場所','室內公共場所禁菸','戶外全禁','無限制'],a:1,e:'台灣菸害防制法規定室內公共場所全面禁菸'},
+  {q:'成人每日熱量建議？',o:['1000大卡','1500大卡','2000大卡','3000大卡'],a:2,e:'成人每日建議攝取約2000大卡（依體重活動量調整）'},
+  {q:'禽流感H5N1傳播？',o:['人傳人為主','接觸禽鳥','蚊子叮咬','飲水傳播'],a:1,e:'H5N1主要透過直接接觸受感染禽鳥或其排泄物傳播'},
+  {q:'健康不平等原因？',o:['個人選擇','社會經濟環境教育等','基因','運氣'],a:1,e:'健康不平等主要源於社會決定因素，如收入、教育、居住環境'},
+  {q:'台灣二代健保？',o:['1995年','2000年','2013年','2020年'],a:2,e:'台灣二代健保於2013年正式實施'},
+];
+
+const BCOLS=['#7C3AED','#0EA5E9','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6','#06B6D4'];
+const ANS_BG=['#1E3A5F','#1E3D2F','#3D2A1E','#3D1E3D'];
+const ANS_HL=['#3B82F6','#10B981','#F59E0B','#A855F7'];
+
+let bx,by,bspeed,score,streak,best,correctCnt,floorLayers,paused,over,timer,curQ,qs,qi,answered,flash,wrongList,hintUsed;
+
+function shuffle(a){
+  var arr=a.slice();
+  for(var i=arr.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=arr[i];arr[i]=arr[j];arr[j]=t;}
+  return arr;
+}
+function playH(){return H-ANS_H-floorLayers*LAYER_H}
+
+function init(){
+  if(AC.state==='suspended')AC.resume();
+  qs=shuffle(QS);qi=0;
+  score=0;streak=0;best=0;correctCnt=0;floorLayers=0;wrongList=[];
+  paused=false;over=false;answered=false;flash=null;
+  document.getElementById('ov').style.display='none';
+  document.getElementById('pbtn').textContent='暫停';
+  stopDangerBeeps();stopBGM();
+  updStats();loadQ();
+  clearInterval(timer);timer=setInterval(tick,40);
+  setTimeout(function(){startBGM();},300);
+}
+
+function loadQ(){
+  // 出完100題就重新洗牌，保證同一輪不重複
+  if(qi>=qs.length){qs=shuffle(QS);qi=0;}
+  curQ=qs[qi];qi++;
+  bx=4;by=-BLOCK_H;
+  bspeed=1.0+Math.min(floorLayers*0.15,2.5);
+  answered=false;hintUsed=false;
+  document.getElementById('hintbtn').className='cbtn hint-btn';
+  document.getElementById('hintbtn').textContent='💡 提示';
+  document.getElementById('fb').textContent='移動到正確答案上方，讓它落下！';
+  document.getElementById('fb').className='fb';
+}
+
+function tick(){
+  if(paused||over)return;
+  by+=bspeed;
+  if(by+BLOCK_H>=playH()){
+    by=playH()-BLOCK_H;
+    if(!answered){sfxLand();checkAnswer();}
+  }
+  draw();
+  var danger=floorLayers/MAX_LAYERS;
+  if(danger>=0.5&&!dangerTimer&&!over&&!paused)startDangerBeeps(danger);
+  else if(danger<0.5&&dangerTimer)stopDangerBeeps();
+}
+
+function checkAnswer(){
+  answered=true;
+  var col=Math.max(0,Math.min(COLS-1,Math.floor((bx+BLOCK_W/2)/CW)));
+  var fb=document.getElementById('fb');
+  if(col===curQ.a){
+    streak++;if(streak>best)best=streak;correctCnt++;
+    var pts=100+streak*30+floorLayers*10;score+=pts;
+    flash={ok:true,zone:col};sfxCorrect();
+    fb.textContent='✅ 正確！+'+pts+'分！連勝 x'+streak+'　'+curQ.e;
+    fb.className='fb ok';updStats();
+    setTimeout(function(){flash=null;if(!over)loadQ();},750);
+  } else {
+    streak=0;floorLayers++;flash={ok:false};sfxWrong();
+    wrongList.push({q:curQ.q,correct:curQ.o[curQ.a],chosen:curQ.o[col],e:curQ.e});
+    fb.textContent='❌ 答錯！底部墊高一層！正解：「'+curQ.o[curQ.a]+'」　'+curQ.e;
+    fb.className='fb ng';updStats();
+    var danger=floorLayers/MAX_LAYERS;
+    if(dangerTimer)startDangerBeeps(danger);
+    if(floorLayers>=MAX_LAYERS)setTimeout(endGame,600);
+    else setTimeout(function(){flash=null;if(!over)loadQ();},850);
+  }
+}
+
+function endGame(){
+  over=true;clearInterval(timer);stopBGM();stopDangerBeeps();sfxDead();
+  var ov=document.getElementById('ov');ov.style.display='flex';
+  var total=correctCnt+wrongList.length;
+  var acc=total>0?Math.round(correctCnt/total*100):0;
+  var reviewHtml='';
+  if(wrongList.length>0){
+    reviewHtml+='<div style="width:100%;margin-top:10px;text-align:left;max-height:220px;overflow-y:auto;border-top:1px solid #334155;padding-top:10px">';
+    reviewHtml+='<div style="font-size:11px;font-weight:700;color:#F87171;margin-bottom:8px;text-align:center">📋 答錯題目複習（共'+wrongList.length+'題）</div>';
+    wrongList.forEach(function(w,i){
+      reviewHtml+='<div style="background:#1E293B;border-radius:8px;padding:8px 10px;margin-bottom:6px;border:1px solid #334155">'
+        +'<div style="font-size:11px;color:#E2E8F0;font-weight:700;margin-bottom:4px">Q'+(i+1)+'：'+w.q+'</div>'
+        +'<div style="font-size:11px;color:#FCA5A5;margin-bottom:2px">✗ 你選：'+w.chosen+'</div>'
+        +'<div style="font-size:11px;color:#6EE7B7;margin-bottom:4px">✓ 正解：'+w.correct+'</div>'
+        +'<div style="font-size:10px;color:#64748B;line-height:1.6">'+w.e+'</div>'
+        +'</div>';
+    });
+    reviewHtml+='</div>';
+  }
+  ov.innerHTML='<div class="otitle">遊戲結束！</div>'
+    +'<div class="osub">得分：'+score+'　正確率：'+acc+'%<br>答對：'+correctCnt+' 題　答錯：'+wrongList.length+' 題　最高連勝：'+best+'</div>'
+    +reviewHtml
+    +'<button class="bbtn" onclick="init()">再玩一次 🔄</button>';
+}
+
+function updStats(){
+  document.getElementById('sc').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  document.getElementById('best').textContent=best;
+  document.getElementById('correct').textContent=correctCnt;
+  document.getElementById('floor').textContent=floorLayers+'/'+MAX_LAYERS;
+}
+
+function rr(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.arcTo(x+w,y,x+w,y+r,r);
+  c.lineTo(x+w,y+h-r);c.arcTo(x+w,y+h,x+w-r,y+h,r);
+  c.lineTo(x+r,y+h);c.arcTo(x,y+h,x,y+h-r,r);
+  c.lineTo(x,y+r);c.arcTo(x,y,x+r,y,r);c.closePath();
+}
+
+function wt(c,text,cx2,cy,maxW,lh,col){
+  c.fillStyle=col||'#fff';c.textAlign='center';c.textBaseline='middle';
+  var chars=text.split(''),line='',lines=[];
+  for(var i=0;i<chars.length;i++){
+    var t=line+chars[i];
+    if(c.measureText(t).width>maxW&&line.length>0){lines.push(line);line=chars[i];}else line=t;
+  }
+  lines.push(line);
+  var sy=cy-((lines.length-1)*lh)/2;
+  lines.forEach(function(l,i){c.fillText(l,cx2,sy+i*lh);});
+}
+
+function draw(){
+  cx.fillStyle='#060D1A';cx.fillRect(0,0,W,H);
+  var ph=playH();var danger=floorLayers/MAX_LAYERS;
+  cx.strokeStyle='#1E293B';cx.lineWidth=0.5;
+  for(var i=0;i<=COLS;i++){cx.beginPath();cx.moveTo(i*CW,0);cx.lineTo(i*CW,ph);cx.stroke();}
+  if(danger>0.5){cx.fillStyle='rgba(239,68,68,'+(danger-0.5)*0.18+')';cx.fillRect(0,0,W,80);}
+
+  for(var l=0;l<floorLayers;l++){
+    var ly=ph-LAYER_H*(l+1);var d=l/(MAX_LAYERS-1);
+    var r=Math.round(30+d*200),g2=Math.round(50-d*40),b=Math.round(90-d*70);
+    cx.fillStyle='rgb('+r+','+g2+','+b+')';cx.fillRect(0,ly,W,LAYER_H);
+    cx.strokeStyle='rgba(255,255,255,'+(0.05+d*0.1)+')';cx.lineWidth=0.5;
+    for(var x=0;x<W;x+=14){cx.beginPath();cx.moveTo(x,ly);cx.lineTo(x+10,ly+LAYER_H);cx.stroke();}
+  }
+  if(floorLayers>0){
+    cx.fillStyle='rgba(255,255,255,0.35)';cx.font='bold 10px sans-serif';cx.textAlign='left';
+    cx.fillText('▲ '+floorLayers+' 層',4,ph-floorLayers*LAYER_H+13);
+  }
+
+  cx.strokeStyle=danger>0.6?'rgba(239,68,68,'+danger+')':'#475569';cx.lineWidth=2;
+  cx.beginPath();cx.moveTo(0,ph);cx.lineTo(W,ph);cx.stroke();
+
+  for(var i=0;i<COLS;i++){
+    var ax=i*CW;
+    var isC=(i===curQ.a)&&(hintUsed||answered); // 提示後 或 作答後 才高亮
+    cx.fillStyle=ANS_BG[i]+'dd';cx.fillRect(ax+1,ph+1,CW-2,ANS_H-2);
+    cx.strokeStyle=isC?ANS_HL[i]+'99':ANS_HL[i]+'22';cx.lineWidth=isC?1.5:0.5;
+    cx.strokeRect(ax+1,ph+1,CW-2,ANS_H-2);
+    cx.font='bold 12px "Noto Sans TC",sans-serif';
+    wt(cx,curQ.o[i],ax+CW/2,ph+ANS_H/2,CW-10,14,isC?'#86EFAC':'#94A3B8');
+  }
+
+  // 虛線導引只在用了提示後才顯示
+  if(!answered&&!over&&hintUsed){
+    var gx2=curQ.a*CW+CW/2;
+    cx.strokeStyle='#86EFAC44';cx.lineWidth=2;cx.setLineDash([4,6]);
+    cx.beginPath();cx.moveTo(gx2,0);cx.lineTo(gx2,ph);cx.stroke();cx.setLineDash([]);
+  }
+
+  if(!over){
+    var col=BCOLS[qi%BCOLS.length];
+    cx.fillStyle=col;rr(cx,bx,by,BLOCK_W,BLOCK_H,8);cx.fill();
+    cx.fillStyle='rgba(255,255,255,.22)';rr(cx,bx+3,by+3,BLOCK_W-6,10,4);cx.fill();
+    cx.fillStyle='rgba(0,0,0,.22)';rr(cx,bx+2,by+BLOCK_H-6,BLOCK_W-4,6,4);cx.fill();
+    cx.font='bold 11px "Noto Sans TC",sans-serif';
+    wt(cx,curQ.q,bx+BLOCK_W/2,by+BLOCK_H/2,BLOCK_W-8,14,'#fff');
+  }
+
+  if(flash){
+    if(flash.ok){cx.fillStyle='#86EFAC22';cx.fillRect(flash.zone*CW,ph,CW,ANS_H);}
+    else{cx.fillStyle='rgba(239,68,68,0.25)';cx.fillRect(0,0,W,H);}
+  }
+
+  if(danger>=0.75&&!over){
+    cx.fillStyle='rgba(239,68,68,'+(0.65+Math.sin(Date.now()/180)*0.35)+')';
+    cx.font='bold 13px sans-serif';cx.textAlign='center';
+    cx.fillText('⚠️ 危險！快撐不住了！',W/2,18);
+  }
+}
+
+function mLeft(){if(!paused&&!over&&!answered){bx=Math.max(0,bx-CW);draw();}}
+function mRight(){if(!paused&&!over&&!answered){bx=Math.min(W-BLOCK_W,bx+CW);draw();}}
+function mDrop(){if(!paused&&!over&&!answered)bspeed=16;}
+
+document.getElementById('startbtn').onclick=function(){if(AC.state==='suspended')AC.resume();init();};
+document.getElementById('dl').onclick=mLeft;
+document.getElementById('dr').onclick=mRight;
+document.getElementById('dd').onclick=mDrop;
+document.getElementById('rbtn').onclick=init;
+document.getElementById('pbtn').onclick=function(){
+  if(over)return;paused=!paused;
+  document.getElementById('pbtn').textContent=paused?'繼續':'暫停';
+  if(paused){stopBGM();stopDangerBeeps();}
+  else{if(!muted)startBGM();var d=floorLayers/MAX_LAYERS;if(d>=0.5)startDangerBeeps(d);}
+};
+
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowLeft'){e.preventDefault();mLeft();}
+  else if(e.key==='ArrowRight'){e.preventDefault();mRight();}
+  else if(e.key==='ArrowDown'||e.key===' '){e.preventDefault();mDrop();}
+  else if(e.key==='p'||e.key==='P')document.getElementById('pbtn').click();
+  else if(e.key==='m'||e.key==='M')document.getElementById('mutebtn').click();
+});
+
+// 提示按鈕：暫停方塊，把方塊移到正確答案上方，扣分
+document.getElementById('hintbtn').onclick=function(){
+  if(over||answered||hintUsed)return;
+  hintUsed=true;
+  // 把方塊移到正確答案格
+  bx=curQ.a*CW+Math.floor((CW-BLOCK_W)/2);
+  // 扣分懲罰（不可負數）
+  score=Math.max(0,score-50);
+  updStats();
+  draw();
+  document.getElementById('fb').textContent='💡 提示用了！扣50分。正解在第'+(curQ.a+1)+'格！';
+  document.getElementById('fb').className='fb';
+  document.getElementById('hintbtn').className='cbtn hint-btn used';
+  document.getElementById('hintbtn').textContent='💡 已用';
+};
+
+// 關閉按鈕：確認後關閉視窗
+document.getElementById('closebtn').onclick=function(){
+  if(confirm('確定要關閉遊戲嗎？')){
+    // 嘗試關閉視窗（從超連結開啟才有效）
+    window.close();
+    // 若無法關閉，顯示提示
+    setTimeout(function(){
+      document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#060D1A;color:#94A3B8;font-family:sans-serif;font-size:14px;gap:16px"><div style="font-size:40px">👋</div><div>感謝遊玩！</div><div style="font-size:12px;color:#475569">可以直接關閉此視窗</div></div>';
+    },100);
+  }
+};
+var touchStartX=0,touchStartY=0;
+cv.addEventListener('touchstart',function(e){
+  e.preventDefault();
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+},{passive:false});
+cv.addEventListener('touchend',function(e){
+  e.preventDefault();
+  var dx=e.changedTouches[0].clientX-touchStartX;
+  var dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dx)>Math.abs(dy)){
+    if(dx>20)mRight();else if(dx<-20)mLeft();
+  } else {
+    if(dy>20)mDrop();
+  }
+},{passive:false});
+
+// canvas 自適應螢幕寬度
+function resizeCanvas(){
+  var maxW=Math.min(window.innerWidth-130,280);
+  var scale=maxW/280;
+  var cw=Math.round(280*scale);
+  var ch=Math.round(440*scale);
+  cv.style.width=cw+'px';
+  cv.style.height=ch+'px';
+}
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();
+
+cx.fillStyle='#060D1A';cx.fillRect(0,0,W,H);
+</script>
+</body>
+</html>
