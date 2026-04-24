@@ -2,328 +2,280 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌟 健康知識挑戰賽 🌟</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🏫 知識小學堂：全能築夢師 Pro</title>
     <style>
         :root {
-            --primary: #FF7E67;
-            --secondary: #6B5B95;
-            --bg-color: #F9F9F9;
-            --text-color: #333;
-            --correct: #4CAF50;
-            --wrong: #F44336;
-            --evidence-bg: #E8F5E9;
+            --primary: #FF7043;
+            --secondary: #4DB6AC;
+            --bg: #E0F2F1;
+            --board: #2C3E50;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, '微軟正黑體';
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-image: radial-gradient(#FFD3B6 10%, transparent 10%), radial-gradient(#FFD3B6 10%, transparent 10%);
-            background-size: 40px 40px;
-            background-position: 0 0, 20px 20px;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; transition: transform 0.1s; }
 
-        .app-container {
-            background: white;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-            text-align: center;
-            padding: 30px;
-            position: relative;
-        }
+        canvas { display: block; }
 
+        /* UI Overlay */
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
         .screen {
-            display: none;
-            animation: fadeIn 0.5s;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 92%; max-width: 500px; padding: 30px; background: rgba(255, 255, 255, 0.98);
+            border-radius: 35px; text-align: center; display: none; pointer-events: auto;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.15); border: 6px solid #fff;
+        }
+        .screen.active { display: block; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } }
+
+        #q-board {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 550px; background: var(--board); color: #fff; padding: 18px;
+            border-radius: 15px; border: 4px solid #fff; text-align: center; font-size: 1.1em;
+            font-weight: bold; z-index: 50; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        .screen.active {
-            display: block;
-        }
+        #hud { position: absolute; bottom: 130px; width: 100%; padding: 0 25px; display: flex; justify-content: space-between; font-weight: 900; font-size: 1.1em; pointer-events: none; text-shadow: 0 1px #fff; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .btn { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 20px; font-size: 1.2em; font-weight: bold; cursor: pointer; color: white; }
+        .btn-theme { background: var(--secondary); box-shadow: 0 6px 0 #00897B; }
+        .btn-start { background: var(--primary); box-shadow: 0 6px 0 #E64A19; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #333; }
 
-        h1, h2 {
-            color: var(--secondary);
-            margin-bottom: 20px;
-        }
-
-        p {
-            font-size: 1.1em;
-            line-height: 1.6;
-        }
-
-        /* 按鈕設計 */
-        .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 20px;
-            font-weight: bold;
-            width: 100%;
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(255, 126, 103, 0.4);
-        }
-
-        /* 答題區設計 */
-        .options-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .option-btn {
-            background-color: white;
-            border: 2px solid var(--secondary);
-            color: var(--secondary);
-            padding: 15px;
-            border-radius: 15px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: left;
-        }
-
-        .option-btn:hover {
-            background-color: var(--secondary);
-            color: white;
-        }
-
-        .option-btn.correct {
-            background-color: var(--correct);
-            border-color: var(--correct);
-            color: white;
-        }
-
-        .option-btn.wrong {
-            background-color: var(--wrong);
-            border-color: var(--wrong);
-            color: white;
-        }
-
-        /* 錯題回顧設計 */
-        .review-card {
-            background-color: #FFF3E0;
-            border-left: 5px solid var(--primary);
-            padding: 15px;
-            margin-bottom: 15px;
-            text-align: left;
-            border-radius: 0 10px 10px 0;
-        }
-
-        .review-card .question {
-            font-weight: bold;
-            color: var(--secondary);
-            font-size: 1.1em;
-        }
-
-        .review-card .explanation {
-            margin-top: 10px;
-            font-size: 0.95em;
-            color: #444;
-        }
-        
-        .review-card .evidence {
-            margin-top: 8px;
-            padding: 8px;
-            background-color: var(--evidence-bg);
-            border-radius: 8px;
-            font-size: 0.9em;
-            color: #2E7D32;
-            border-left: 3px solid #4CAF50;
-        }
-
-        #progress {
-            font-size: 0.9em;
-            color: #888;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
+        .review-card { text-align: left; background: #fdfcfb; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 6px solid var(--primary); font-size: 0.85em; }
     </style>
 </head>
 <body>
 
-<div class="app-container">
+<div id="q-board">載入中...</div>
+
+<div id="hud" style="display: none;">
+    <div>🏠 城市規模: <span id="house-count">0</span>/5</div>
+    <div>🎯 任務進度: <span id="wave-ui">1/10</span></div>
+</div>
+
+<div class="ui-layer">
     <div id="start-screen" class="screen active">
-        <h1>🏃‍♂️ 健康知識挑戰賽 🍎</h1>
-        <p>準備好測試你的健康力了嗎？<br>讓我們看看你對「85210」策略有多了解！</p>
-        <button class="btn" onclick="startGame()">開始挑戰 🚀</button>
+        <h1 style="color: var(--primary);">🏫 知識小學堂</h1>
+        <p><strong>🏠 全能健康築夢師 Pro</strong></p>
+        <div style="text-align: left; background: #FFF9E6; padding: 15px; border-radius: 20px; font-size: 0.9em; line-height: 1.6; border: 2px dashed #FFD93D;">
+            1. 點擊正確氣球蓋房，答錯扣一間房。<br>
+            2. 本次挑戰共有 <b>4 個選項</b>，請仔細閱讀！<br>
+            3. 氣球<b>直線上升</b>不晃動，速度隨分加快。<br>
+            4. 完成 10 題後，保留 5 間房即獲勝。
+        </div>
+        <p>選擇你的防衛主題：</p>
+        <button class="btn btn-theme" onclick="selectTheme('chronic')">🛡️ 慢性病預防館</button>
+        <button class="btn btn-theme" onclick="selectTheme('diet')">🥗 健康飲食大賽</button>
     </div>
 
-    <div id="quiz-screen" class="screen">
-        <div id="progress">題目 1 / 3</div>
-        <h2 id="question-text">題目文字會在這裡</h2>
-        <div class="options-container" id="options-container">
-            </div>
-    </div>
-
-    <div id="result-screen" class="screen">
-        <h1>🎉 挑戰完成！</h1>
-        <p>你的得分是：<span id="score-display" style="font-size: 2.5em; font-weight: bold; color: var(--primary);">0</span> / 100</p>
-        <div id="result-message"></div>
-        <button class="btn" id="review-btn" onclick="showReview()">查看錯誤與實證解析 💡</button>
-        <button class="btn" style="background-color: var(--secondary); margin-top: 10px;" onclick="restartGame()">再玩一次 🔄</button>
-    </div>
-
-    <div id="review-screen" class="screen">
-        <h2>📝 錯題與實證筆記</h2>
-        <div id="review-container">
-            </div>
-        <button class="btn" onclick="restartGame()">重新挑戰 🚀</button>
+    <div id="end-screen" class="screen">
+        <h1 id="result-title"></h1>
+        <p>最終建築數：<span id="final-houses" style="font-size: 2.5em; color: var(--primary);">0</span></p>
+        <div id="review-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <button class="btn btn-start" onclick="location.reload()">重新挑戰 🔄</button>
     </div>
 </div>
 
+<canvas id="gameCanvas"></canvas>
+
 <script>
-    const quizData = [
-        {
-            question: "關於「85210」健康密碼，其中的「8」代表什麼？",
-            options: ["每天喝8杯水", "每天睡足8小時", "每天走8000步", "每天看書80分鐘"],
-            answer: 1, 
-            explanation: "「8」代表每天要睡足 8 小時！充足的睡眠有助於大腦休息與促進生長發育。",
-            evidence: "實證研究指出：睡眠不足會干擾內分泌系統，導致瘦素分泌減少、飢餓素增加，進而提高學童兒童期肥胖的風險。"
-        },
-        {
-            question: "「85210」中的「5」是指每天要吃幾份蔬果？",
-            options: ["3份蔬菜2份水果", "5份都是蔬菜", "隨便挑5種顏色的食物", "5份都是水果"],
-            answer: 0,
-            explanation: "「5」代表天天 5 蔬果（3 份蔬菜 + 2 份水果），提供豐富維生素和膳食纖維。",
-            evidence: "實證研究指出：充足的膳食纖維能促進腸道蠕動，改變腸道菌相，有效預防便秘並降低慢性疾病的發生率。"
-        },
-        {
-            question: "為了保護眼睛和維持健康，每天觀看螢幕（手機、電腦）的時間「2」應該限制在多久以內？",
-            options: ["20分鐘", "2小時", "200分鐘", "只要休息2次就好"],
-            answer: 1,
-            explanation: "「2」代表觀看 3C 螢幕的時間每天少於 2 小時。看太久容易造成視力受損。",
-            evidence: "實證研究指出：長時間久坐觀看螢幕會排擠身體活動量（Physical Activity），是導致學童體適能下降與過重的重要獨立危險因子。"
-        }
+    // --- 專業級音效與持續 BGM 引擎 ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let bgmTimer;
+
+    function playSound(freq, type, dur, vol = 0.1) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
+    }
+
+    function startBGM() {
+        let step = 0;
+        const melody = [261, 293, 329, 349, 392, 349, 329, 293]; 
+        bgmTimer = setInterval(() => {
+            if (!gameActive) return;
+            playSound(melody[step % 8], 'triangle', 0.4, 0.03); // 輕快主旋律
+            if(step % 4 === 0) playSound(130, 'sine', 0.3, 0.05); // 規律鼓點低音
+            step++;
+        }, 300);
+    }
+
+    // --- 題庫 (4 選項) ---
+    const DB_CHRONIC = [
+        { q: "高血壓防治，鈉攝取上限？", opts: ["2400mg(約6g鹽)", "5000mg", "不需限制", "越鹹越好"], ans: 0, exp: "高鈉會引發水腫與血壓升高。" },
+        { q: "糖尿病飲食，哪項原則正確？", opts: ["首選低GI食物", "不攝取任何澱粉", "只喝果汁不吃菜", "多吃精緻糕點"], ans: 0, exp: "低GI食物消化慢，血糖相對穩定。" },
+        { q: "代謝症候群，男腰圍標準？", opts: ["小於 90cm", "只要體重輕就好", "100cm也OK", "腰寬才有福氣"], ans: 0, exp: "腰圍是判定內臟脂肪的重要指標。" },
+        { q: "哪種運動能提升好膽固醇？", opts: ["規律有氧運動", "只要流汗就夠", "重訓一分鐘", "散步五分鐘"], ans: 0, exp: "有氧運動能有效增加 HDL 保護心血管。" },
+        { q: "慢性病中「沈默殺手」指？", opts: ["高血壓", "急性感冒", "腸胃炎", "皮膚過敏"], ans: 0, exp: "高血壓早期通常無顯著症狀。" },
+        { q: "關於腎臟病，哪項行為較佳？", opts: ["不亂吃止痛藥", "渴了才喝水", "多喝提神飲料", "多吃加工食品"], ans: 0, exp: "某些成藥會嚴重損害腎功能。" },
+        { q: "高血脂患者應減少攝取？", opts: ["飽和脂肪(豬油)", "白開水", "所有維生素", "植物油脂"], ans: 0, exp: "飽和脂肪會造成壞膽固醇堆積。" },
+        { q: "得舒(DASH)飲食特色？", opts: ["高纖低脂乳製品", "只吃生魚片", "全肉減肥法", "禁喝白開水"], ans: 0, exp: "DASH 飲食是世界公認的高血壓防治飲食。" },
+        { q: "血壓值達到多少為過高？", opts: ["140/90 以上", "120/80 以下", "110/70 左右", "80/50 左右"], ans: 0, exp: "超過 140/90 即進入高血壓判定範圍。" },
+        { q: "定期量血壓的主要目的？", opts: ["掌握長期趨勢", "應付學校體檢", "生病才要量", "浪費時間"], ans: 0, exp: "居家血壓紀錄比單次測量更具參考價值。" }
     ];
 
-    let currentQuestionIndex = 0;
-    let score = 0;
-    let incorrectAnswers = []; 
-    const scorePerQuestion = Math.round(100 / quizData.length);
+    const DB_DIET = [
+        { q: "『85210』中的 8 是指？", opts: ["睡足8小時", "喝8杯珍奶", "看電視8小時", "走8步路"], ans: 0, exp: "睡眠是代謝與腦部修復的黃金時段。" },
+        { q: "天天攝取多少蔬果才正確？", opts: ["3份蔬菜2份水果", "5份全吃肉", "全喝果汁", "只吃水果不吃菜"], ans: 0, exp: "3蔬2果能確保纖維與植化素攝取。" },
+        { q: "『85210』中的 2 是限制？", opts: ["看螢幕<2小時", "只吃2餐", "喝2公升汽水", "每天睡2小時"], ans: 0, exp: "減少靜態活動能增加體能活動機會。" },
+        { q: "『85210』中的 0 是指？", opts: ["0含糖飲料", "0運動量", "0讀書時間", "0社交活動"], ans: 0, exp: "水是最佳水分來源，遠離精緻糖。" },
+        { q: "我的餐盤：每餐水果份量？", opts: ["一個拳頭大小", "一整顆西瓜", "完全不吃", "10顆葡萄"], ans: 0, exp: "拳頭大小的份量最能控制糖分與熱量。" },
+        { q: "全穀雜糧類建議佔比？", opts: ["至少 1/3 為全穀", "全部吃白米飯", "禁吃任何澱粉", "只吃白吐司"], ans: 0, exp: "全穀類含有的維生素B群是白米的數倍。" },
+        { q: "豆魚蛋肉類建議優先選？", opts: ["原型植物蛋白", "煙燻加工火腿", "油炸排骨", "肥肉培根"], ans: 0, exp: "選優質且低飽和脂肪的蛋白質來源。" },
+        { q: "吃飯時建議的順序？", opts: ["先吃菜再吃肉", "先吃甜點", "只吃白飯", "先喝含糖茶"], ans: 0, exp: "先吃蔬菜能增加飽足感且穩定血糖。" },
+        { q: "下列哪種補水方式最差？", opts: ["珍珠奶茶", "純淨白開水", "無糖綠茶", "淡檸檬水"], ans: 0, exp: "糖飲除了熱量，更會造成代謝負擔。" },
+        { q: "1 是指每天活動多久？", opts: ["累積 60 分鐘", "只要 1 分鐘", "休息 1 小時", "看書 1 小時"], ans: 0, exp: "1 代表每天累積一小時中強度活動。" }
+    ];
 
-    function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(screen => {
-            screen.classList.remove('active');
-        });
-        document.getElementById(screenId).classList.add('active');
+    // --- 系統變數 ---
+    let gameActive = false, score = 0, houseCount = 0, currentWave = 0;
+    let activeDB = [], orbs = [], mistakes = [];
+    let baseSpeed = 1.3;
+
+    function selectTheme(theme) {
+        activeDB = (theme === 'chronic' ? DB_CHRONIC : DB_DIET).sort(() => Math.random() - 0.5);
+        document.getElementById('start-screen').classList.remove('active');
+        initGame();
     }
 
-    function startGame() {
-        currentQuestionIndex = 0;
-        score = 0;
-        incorrectAnswers = [];
-        loadQuestion();
-        showScreen('quiz-screen');
+    function initGame() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        document.getElementById('hud').style.display = 'flex';
+        document.getElementById('q-board').style.display = 'block';
+        gameActive = true; houseCount = 0; score = 0; currentWave = 0; mistakes = [];
+        startBGM(); nextWave(); requestAnimationFrame(loop);
     }
 
-    function loadQuestion() {
-        const currentQuiz = quizData[currentQuestionIndex];
-        document.getElementById('progress').innerText = `題目 ${currentQuestionIndex + 1} / ${quizData.length}`;
-        document.getElementById('question-text').innerText = currentQuiz.question;
+    class Balloon {
+        constructor(text, isCorrect, xPos) {
+            this.text = text; this.isCorrect = isCorrect; this.x = xPos;
+            this.y = canvas.height + 80; this.radius = 55;
+            this.speed = baseSpeed + (currentWave * 0.25); // 難度曲線增加
+            this.popped = false;
+            this.color = `hsl(${Math.random()*360}, 70%, 80%)`;
+        }
+        update() { this.y -= this.speed; }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            // 銀色漸層質感
+            const grad = ctx.createRadialGradient(0,0,0,0,0,this.radius);
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#CFD8DC');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#90A4AE"; ctx.lineWidth = 3; ctx.stroke();
+            // 文字繪製 (直線移動，不晃動)
+            ctx.fillStyle = "#263238"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
+            const lines = this.text.match(/.{1,6}/g) || [this.text];
+            lines.forEach((l, i) => ctx.fillText(l, 0, (i*16) - (lines.length*8) + 8));
+            ctx.restore();
+        }
+    }
+
+    function nextWave() {
+        if (currentWave >= 10) { endGame(); return; }
+        const qData = activeDB[currentWave];
+        document.getElementById('q-board').innerText = qData.q;
+        document.getElementById('wave-ui').innerText = `${currentWave + 1}/10`;
+        orbs = [];
+        const spacing = canvas.width / 5; // 4 個選項
+        const opts = qData.opts.map((t, i) => ({ t, c: i === 0 }));
+        opts.sort(() => Math.random() - 0.5);
+        opts.forEach((o, i) => orbs.push(new Balloon(o.t, o.c, (i+1) * spacing)));
+        currentWave++;
+    }
+
+    function loop() {
+        if (!gameActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        const optionsContainer = document.getElementById('options-container');
-        optionsContainer.innerHTML = ''; 
+        // 畫地面
+        ctx.fillStyle = "#90EE90";
+        ctx.fillRect(0, canvas.height - 110, canvas.width, 110);
 
-        currentQuiz.options.forEach((option, index) => {
-            const button = document.createElement('button');
-            button.innerText = option;
-            button.classList.add('option-btn');
-            button.onclick = () => checkAnswer(index, button);
-            optionsContainer.appendChild(button);
+        // 畫房屋
+        for(let i=0; i<houseCount; i++) drawHouse(25 + i*65, canvas.height - 110);
+
+        let waveOver = false;
+        orbs.forEach(o => {
+            if (!o.popped) { o.update(); o.draw(); if (o.y < -100) waveOver = true; }
         });
-    }
 
-    function checkAnswer(selectedIndex, buttonElement) {
-        const allButtons = document.querySelectorAll('.option-btn');
-        allButtons.forEach(btn => btn.style.pointerEvents = 'none');
-
-        const currentQuiz = quizData[currentQuestionIndex];
-
-        if (selectedIndex === currentQuiz.answer) {
-            buttonElement.classList.add('correct');
-            score += scorePerQuestion;
-        } else {
-            buttonElement.classList.add('wrong');
-            allButtons[currentQuiz.answer].classList.add('correct');
-            incorrectAnswers.push(currentQuiz);
-        }
-
-        if(currentQuestionIndex === quizData.length - 1 && score > 90) score = 100;
-
-        setTimeout(() => {
-            currentQuestionIndex++;
-            if (currentQuestionIndex < quizData.length) {
-                loadQuestion();
-            } else {
-                showResults();
+        if (waveOver) {
+            const correctOne = orbs.find(o => o.isCorrect);
+            if(!correctOne.popped) {
+                if(houseCount > 0) houseCount--;
+                mistakes.push(activeDB[currentWave-1]);
+                playSound(110, 'sawtooth', 0.4);
             }
-        }, 1200);
-    }
-
-    function showResults() {
-        document.getElementById('score-display').innerText = score;
-        const msgElement = document.getElementById('result-message');
-        const reviewBtn = document.getElementById('review-btn');
-
-        if (score === 100) {
-            msgElement.innerHTML = "<h3>太棒了！你是健康知識大師 🏆</h3><p>你完全掌握了健康密碼！</p>";
-            reviewBtn.style.display = 'none'; 
-        } else {
-            msgElement.innerHTML = "<h3>做得很棒！但還有進步空間喔 💪</h3><p>來看看哪些概念還可以再加強吧！</p>";
-            reviewBtn.style.display = 'block';
+            updateHUD(); nextWave();
         }
-
-        showScreen('result-screen');
+        requestAnimationFrame(loop);
     }
 
-    function showReview() {
-        const reviewContainer = document.getElementById('review-container');
-        reviewContainer.innerHTML = ''; 
+    function drawHouse(x, y) {
+        ctx.fillStyle = "#FF7043"; ctx.fillRect(x, y - 40, 50, 40);
+        ctx.beginPath(); ctx.moveTo(x - 5, y - 40); ctx.lineTo(x + 25, y - 65); ctx.lineTo(x + 55, y - 40);
+        ctx.fillStyle = "#D84315"; ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.fillRect(x+15, y-20, 20, 20);
+    }
 
-        incorrectAnswers.forEach((item) => {
-            const card = document.createElement('div');
-            card.classList.add('review-card');
-            
-            card.innerHTML = `
-                <div class="question">Q: ${item.question}</div>
-                <div style="color: var(--wrong); margin-top: 5px;">❌ 你的答案答錯了</div>
-                <div style="color: var(--correct); margin-top: 5px; font-weight: bold;">✅ 正確答案：${item.options[item.answer]}</div>
-                <div class="explanation">💡 <b>解析：</b>${item.explanation}</div>
-                <div class="evidence">🔍 <b>背後實證：</b>${item.evidence}</div>
-            `;
-            reviewContainer.appendChild(card);
+    function handleInput(ex, ey) {
+        if (!gameActive) return;
+        for (let o of orbs) {
+            const dist = Math.hypot(ex - o.x, ey - o.y);
+            if (dist < o.radius + 15 && !o.popped) {
+                o.popped = true;
+                if (o.isCorrect) {
+                    houseCount++; score += 10;
+                    playSound(523, 'sine', 0.2); setTimeout(() => playSound(659, 'sine', 0.2), 60);
+                } else {
+                    if(houseCount > 0) houseCount--;
+                    mistakes.push(activeDB[currentWave-1]);
+                    playSound(110, 'sawtooth', 0.4);
+                    // 螢幕震動
+                    document.body.style.transform = "translateX(10px)";
+                    setTimeout(() => document.body.style.transform = "translateX(-10px)", 50);
+                    setTimeout(() => document.body.style.transform = "translateX(0)", 100);
+                }
+                updateHUD(); setTimeout(nextWave, 400); break;
+            }
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('house-count').innerText = houseCount;
+    }
+
+    canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleInput(e.touches[0].clientX, e.touches[0].clientY); });
+
+    function endGame() {
+        gameActive = false; clearInterval(bgmTimer);
+        document.getElementById('q-board').style.display = 'none';
+        document.getElementById('hud').style.display = 'none';
+        
+        const title = document.getElementById('result-title');
+        title.innerText = houseCount >= 5 ? "🏆 挑戰成功！全能築夢師" : "🚧 城市受損，請再接再厲";
+        document.getElementById('final-houses').innerText = houseCount;
+
+        const list = document.getElementById('review-list');
+        list.innerHTML = '<h3>📝 衛教重點回顧：</h3>';
+        mistakes.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'review-card';
+            div.innerHTML = `<strong>Q: ${m.q}</strong><br>✅ 正解：${m.opts[0]}<br>💡 解析：${m.exp}`;
+            list.appendChild(div);
         });
-
-        showScreen('review-screen');
-    }
-
-    function restartGame() {
-        showScreen('start-screen');
+        document.getElementById('end-screen').classList.add('active');
     }
 </script>
-
 </body>
 </html>
