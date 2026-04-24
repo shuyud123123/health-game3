@@ -3,76 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🏫 知識小學堂：全能築夢師 Pro</title>
+    <title>🏠 知識小學堂：健康築夢師 2.0</title>
     <style>
         :root {
-            --primary: #FF7043;
-            --secondary: #4DB6AC;
-            --bg: #E0F2F1;
+            --sky: #A1C4FD;
+            --grass: #81C784;
+            --house: #FF7043;
+            --monster: #9C27B0;
             --board: #2C3E50;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; transition: transform 0.1s; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--sky); overflow: hidden; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
 
-        canvas { display: block; }
+        canvas { display: block; cursor: crosshair; }
 
-        /* UI Overlay */
+        /* UI 層次 */
         .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
         .screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 92%; max-width: 500px; padding: 30px; background: rgba(255, 255, 255, 0.98);
-            border-radius: 35px; text-align: center; display: none; pointer-events: auto;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.15); border: 6px solid #fff;
+            width: 90%; max-width: 500px; padding: 30px; background: rgba(255, 255, 255, 0.98);
+            border-radius: 40px; text-align: center; display: none; pointer-events: auto;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.15); border: 8px solid #fff;
         }
-        .screen.active { display: block; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } }
+        .screen.active { display: block; animation: bounceIn 0.5s ease; }
+        @keyframes bounceIn { from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; } }
 
-        #q-board {
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 550px; background: var(--board); color: #fff; padding: 18px;
-            border-radius: 15px; border: 4px solid #fff; text-align: center; font-size: 1.1em;
-            font-weight: bold; z-index: 50; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        /* 題目彈窗 */
+        #quiz-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 92%; max-width: 550px; background: var(--board); color: #fff; padding: 25px;
+            border-radius: 20px; border: 4px solid #fff; text-align: center; z-index: 200;
+            display: none; pointer-events: auto; box-shadow: 0 0 100px rgba(0,0,0,0.5);
         }
 
-        #hud { position: absolute; bottom: 130px; width: 100%; padding: 0 25px; display: flex; justify-content: space-between; font-weight: 900; font-size: 1.1em; pointer-events: none; text-shadow: 0 1px #fff; }
+        .opt-btn {
+            width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 12px;
+            font-size: 1.1em; font-weight: bold; cursor: pointer; background: #fff; color: var(--board); transition: 0.1s;
+        }
+        .opt-btn:active { background: #E0F2F1; transform: scale(0.98); }
 
-        .btn { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 20px; font-size: 1.2em; font-weight: bold; cursor: pointer; color: white; }
-        .btn-theme { background: var(--secondary); box-shadow: 0 6px 0 #00897B; }
-        .btn-start { background: var(--primary); box-shadow: 0 6px 0 #E64A19; }
-        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #333; }
+        #hud { position: absolute; bottom: 130px; width: 100%; padding: 0 25px; display: flex; justify-content: space-between; font-weight: 900; color: #2C3E50; pointer-events: none; z-index: 50; }
 
-        .review-card { text-align: left; background: #fdfcfb; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 6px solid var(--primary); font-size: 0.85em; }
+        .btn { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 50px; font-size: 1.2em; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-theme { background: #4DB6AC; box-shadow: 0 6px 0 #00897B; }
+        .btn-start { background: var(--house); box-shadow: 0 6px 0 #E64A19; }
+
+        .tutorial-item { text-align: left; background: #FDF2E9; padding: 12px; border-radius: 15px; margin: 10px 0; font-size: 0.9em; border-left: 5px solid var(--house); }
+        .review-card { text-align: left; background: #fdfcfb; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 6px solid var(--house); font-size: 0.85em; }
     </style>
 </head>
 <body>
 
-<div id="q-board">載入中...</div>
+<div id="quiz-overlay">
+    <h3 id="q-text">讀取題目中...</h3>
+    <div id="options-container"></div>
+</div>
 
 <div id="hud" style="display: none;">
     <div>🏠 城市規模: <span id="house-count">0</span>/5</div>
-    <div>🎯 任務進度: <span id="wave-ui">1/10</span></div>
+    <div style="color: var(--monster);">👾 迷思怪獸入侵中</div>
 </div>
 
 <div class="ui-layer">
-    <div id="start-screen" class="screen active">
-        <h1 style="color: var(--primary);">🏫 知識小學堂</h1>
-        <p><strong>🏠 全能健康築夢師 Pro</strong></p>
-        <div style="text-align: left; background: #FFF9E6; padding: 15px; border-radius: 20px; font-size: 0.9em; line-height: 1.6; border: 2px dashed #FFD93D;">
-            1. 點擊正確氣球蓋房，答錯扣一間房。<br>
-            2. 本次挑戰共有 <b>4 個選項</b>，請仔細閱讀！<br>
-            3. 氣球<b>直線上升</b>不晃動，速度隨分加快。<br>
-            4. 完成 10 題後，保留 5 間房即獲勝。
-        </div>
-        <p>選擇你的防衛主題：</p>
-        <button class="btn btn-theme" onclick="selectTheme('chronic')">🛡️ 慢性病預防館</button>
-        <button class="btn btn-theme" onclick="selectTheme('diet')">🥗 健康飲食大賽</button>
+    <div id="menu-screen" class="screen active">
+        <h1 style="color: #FF6B6B;">🏫 知識小學堂</h1>
+        <p><strong>🏗️ 健康城市築夢計畫</strong></p>
+        <p>請選擇您的防衛主題：</p>
+        <button class="btn btn-theme" onclick="prepareTutorial('chronic')">🛡️ 慢性病防護任務</button>
+        <button class="btn btn-theme" onclick="prepareTutorial('diet')">🥗 健康飲食大賽</button>
+    </div>
+
+    <div id="tutorial-screen" class="screen">
+        <h2 style="color: var(--house);">📜 任務簡報</h2>
+        <div class="tutorial-item">🎈 <b>點擊彩色氣球：</b>會跳出題目，答對即可建設一間房子。</div>
+        <div class="tutorial-item">👾 <b>阻止降落怪獸：</b>怪獸會從上方垂直落下。若點擊並答對題目可擊退牠；若落地則會拆掉房子！</div>
+        <div class="tutorial-item">🏆 <b>勝利條件：</b>在 10 題內蓋滿 5 間房。</div>
+        <button class="btn btn-start" onclick="startGame()">啟動系統 🚀</button>
     </div>
 
     <div id="end-screen" class="screen">
         <h1 id="result-title"></h1>
-        <p>最終建築數：<span id="final-houses" style="font-size: 2.5em; color: var(--primary);">0</span></p>
-        <div id="review-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <p>最終城市保存數：<span id="final-houses" style="font-size: 2.2em; color: var(--house);">0</span></p>
+        <div id="review-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; text-align: left;"></div>
         <button class="btn btn-start" onclick="location.reload()">重新挑戰 🔄</button>
     </div>
 </div>
@@ -80,199 +93,176 @@
 <canvas id="gameCanvas"></canvas>
 
 <script>
-    // --- 專業級音效與持續 BGM 引擎 ---
+    // --- 專業音效與音樂合成引擎 ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let bgmTimer;
-
-    function playSound(freq, type, dur, vol = 0.1) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + dur);
+    function playSound(f, t, d, v=0.1) {
+        const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+        o.type=t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+        g.gain.setValueAtTime(v, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+d);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime+d);
     }
-
     function startBGM() {
-        let step = 0;
-        const melody = [261, 293, 329, 349, 392, 349, 329, 293]; 
-        bgmTimer = setInterval(() => {
-            if (!gameActive) return;
-            playSound(melody[step % 8], 'triangle', 0.4, 0.03); // 輕快主旋律
-            if(step % 4 === 0) playSound(130, 'sine', 0.3, 0.05); // 規律鼓點低音
-            step++;
-        }, 300);
+        let s=0; const m=[261, 329, 392, 523];
+        bgmTimer = setInterval(() => { if(gameActive && !quizMode) { playSound(m[s%4], 'sine', 0.5, 0.02); s++; } }, 400);
     }
 
-    // --- 題庫 (4 選項) ---
+    // --- 題庫 ---
     const DB_CHRONIC = [
-        { q: "高血壓防治，鈉攝取上限？", opts: ["2400mg(約6g鹽)", "5000mg", "不需限制", "越鹹越好"], ans: 0, exp: "高鈉會引發水腫與血壓升高。" },
-        { q: "糖尿病飲食，哪項原則正確？", opts: ["首選低GI食物", "不攝取任何澱粉", "只喝果汁不吃菜", "多吃精緻糕點"], ans: 0, exp: "低GI食物消化慢，血糖相對穩定。" },
-        { q: "代謝症候群，男腰圍標準？", opts: ["小於 90cm", "只要體重輕就好", "100cm也OK", "腰寬才有福氣"], ans: 0, exp: "腰圍是判定內臟脂肪的重要指標。" },
-        { q: "哪種運動能提升好膽固醇？", opts: ["規律有氧運動", "只要流汗就夠", "重訓一分鐘", "散步五分鐘"], ans: 0, exp: "有氧運動能有效增加 HDL 保護心血管。" },
-        { q: "慢性病中「沈默殺手」指？", opts: ["高血壓", "急性感冒", "腸胃炎", "皮膚過敏"], ans: 0, exp: "高血壓早期通常無顯著症狀。" },
-        { q: "關於腎臟病，哪項行為較佳？", opts: ["不亂吃止痛藥", "渴了才喝水", "多喝提神飲料", "多吃加工食品"], ans: 0, exp: "某些成藥會嚴重損害腎功能。" },
-        { q: "高血脂患者應減少攝取？", opts: ["飽和脂肪(豬油)", "白開水", "所有維生素", "植物油脂"], ans: 0, exp: "飽和脂肪會造成壞膽固醇堆積。" },
-        { q: "得舒(DASH)飲食特色？", opts: ["高纖低脂乳製品", "只吃生魚片", "全肉減肥法", "禁喝白開水"], ans: 0, exp: "DASH 飲食是世界公認的高血壓防治飲食。" },
-        { q: "血壓值達到多少為過高？", opts: ["140/90 以上", "120/80 以下", "110/70 左右", "80/50 左右"], ans: 0, exp: "超過 140/90 即進入高血壓判定範圍。" },
-        { q: "定期量血壓的主要目的？", opts: ["掌握長期趨勢", "應付學校體檢", "生病才要量", "浪費時間"], ans: 0, exp: "居家血壓紀錄比單次測量更具參考價值。" }
+        { q: "代謝症候群判定指標，男腰圍應？", opts: ["小於 90cm", "越寬越有福氣", "大於 100cm", "只要體重輕"], ans: 0, exp: "男≧90, 女≧80cm 為指標。"},
+        { q: "糖尿病患者哪種飲食原則正確？", opts: ["優先選低GI食物", "絕對不吃澱粉", "多吃精緻澱粉", "只喝果汁代水"], ans: 0, exp: "低GI食物消化慢，血糖波動小。"},
+        { q: "預防高血壓，鈉每日建議上限？", opts: ["低於2400mg", "不需限制鹽分", "高於5000mg", "多吃醬料沒關係"], ans: 0, exp: "2400mg鈉約為6g鹽，保護心血管。"},
+        { q: "血壓低於多少 mmHg 為正常？", opts: ["120/80 以下", "140/90 左右", "只要不頭痛就正常", "160/100 以上"], ans: 0, exp: "維持 120/80 以下是預防中風的關鍵。"},
+        { q: "關於腎臟病，哪項行為較佳？", opts: ["不亂吃止痛成藥", "渴了才喝水", "多喝運動飲料", "每天吃沾醬肉類"], ans: 0, exp: "亂服藥物會嚴重加重腎臟負擔。"}
     ];
-
     const DB_DIET = [
-        { q: "『85210』中的 8 是指？", opts: ["睡足8小時", "喝8杯珍奶", "看電視8小時", "走8步路"], ans: 0, exp: "睡眠是代謝與腦部修復的黃金時段。" },
-        { q: "天天攝取多少蔬果才正確？", opts: ["3份蔬菜2份水果", "5份全吃肉", "全喝果汁", "只吃水果不吃菜"], ans: 0, exp: "3蔬2果能確保纖維與植化素攝取。" },
-        { q: "『85210』中的 2 是限制？", opts: ["看螢幕<2小時", "只吃2餐", "喝2公升汽水", "每天睡2小時"], ans: 0, exp: "減少靜態活動能增加體能活動機會。" },
-        { q: "『85210』中的 0 是指？", opts: ["0含糖飲料", "0運動量", "0讀書時間", "0社交活動"], ans: 0, exp: "水是最佳水分來源，遠離精緻糖。" },
-        { q: "我的餐盤：每餐水果份量？", opts: ["一個拳頭大小", "一整顆西瓜", "完全不吃", "10顆葡萄"], ans: 0, exp: "拳頭大小的份量最能控制糖分與熱量。" },
-        { q: "全穀雜糧類建議佔比？", opts: ["至少 1/3 為全穀", "全部吃白米飯", "禁吃任何澱粉", "只吃白吐司"], ans: 0, exp: "全穀類含有的維生素B群是白米的數倍。" },
-        { q: "豆魚蛋肉類建議優先選？", opts: ["原型植物蛋白", "煙燻加工火腿", "油炸排骨", "肥肉培根"], ans: 0, exp: "選優質且低飽和脂肪的蛋白質來源。" },
-        { q: "吃飯時建議的順序？", opts: ["先吃菜再吃肉", "先吃甜點", "只吃白飯", "先喝含糖茶"], ans: 0, exp: "先吃蔬菜能增加飽足感且穩定血糖。" },
-        { q: "下列哪種補水方式最差？", opts: ["珍珠奶茶", "純淨白開水", "無糖綠茶", "淡檸檬水"], ans: 0, exp: "糖飲除了熱量，更會造成代謝負擔。" },
-        { q: "1 是指每天活動多久？", opts: ["累積 60 分鐘", "只要 1 分鐘", "休息 1 小時", "看書 1 小時"], ans: 0, exp: "1 代表每天累積一小時中強度活動。" }
+        { q: "『85210』中的 0 代表什麼？", opts: ["0含糖飲料", "0運動量", "0睡覺時間", "不吃早餐"], ans: 0, exp: "水是最好的補水來源，遠離糖分。" },
+        { q: "天天攝取多少蔬果才正確？", opts: ["3份蔬菜2份水果", "5份全吃肉", "全喝果汁取代", "只吃水果不吃菜"], ans: 0, exp: "3蔬2果能確保纖維與植化素攝取。" },
+        { q: "『85210』中的 8 是代表？", opts: ["睡足8小時", "喝8杯珍奶", "看電視8小時", "走8步路"], ans: 0, exp: "充足睡眠是修復代謝的基礎。" },
+        { q: "我的餐盤中，水果份量建議？", opts: ["每餐一個拳頭大", "一整顆大西瓜", "完全不吃", "10粒葡萄"], ans: 0, exp: "拳頭大小能控制糖分攝取量。" },
+        { q: "1 是代表每天活動多久？", opts: ["累積 60 分鐘", "只要 1 分鐘", "休息 1 小時", "看書 1 小時"], ans: 0, exp: "1 代表每天累積一小時活動。" }
     ];
 
     // --- 系統變數 ---
-    let gameActive = false, score = 0, houseCount = 0, currentWave = 0;
-    let activeDB = [], orbs = [], mistakes = [];
-    let baseSpeed = 1.3;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gameActive = false, quizMode = false, houseCount = 0;
+    let activeDB = [], balloons = [], monsters = [], mistakes = [];
+    const balloonColors = ['#B2EBF2', '#FFCCBC', '#FFF9C4', '#E1BEE7'];
 
-    function selectTheme(theme) {
-        activeDB = (theme === 'chronic' ? DB_CHRONIC : DB_DIET).sort(() => Math.random() - 0.5);
-        document.getElementById('start-screen').classList.remove('active');
-        initGame();
+    function prepareTutorial(theme) {
+        activeDB = theme==='chronic'?DB_CHRONIC:DB_DIET;
+        document.getElementById('menu-screen').classList.remove('active');
+        document.getElementById('tutorial-screen').classList.add('active');
     }
 
-    function initGame() {
+    function startGame() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        document.getElementById('tutorial-screen').classList.remove('active');
         document.getElementById('hud').style.display = 'flex';
-        document.getElementById('q-board').style.display = 'block';
-        gameActive = true; houseCount = 0; score = 0; currentWave = 0; mistakes = [];
-        startBGM(); nextWave(); requestAnimationFrame(loop);
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        gameActive = true; houseCount = 0; mistakes = [];
+        startBGM(); requestAnimationFrame(loop);
+        spawnItems();
     }
 
-    class Balloon {
-        constructor(text, isCorrect, xPos) {
-            this.text = text; this.isCorrect = isCorrect; this.x = xPos;
-            this.y = canvas.height + 80; this.radius = 55;
-            this.speed = baseSpeed + (currentWave * 0.25); // 難度曲線增加
-            this.popped = false;
-            this.color = `hsl(${Math.random()*360}, 70%, 80%)`;
+    function spawnItems() {
+        if(!gameActive) return;
+        if(!quizMode) {
+            // 氣球
+            if(Math.random() < 0.05) balloons.push({ x: Math.random()*(canvas.width-100)+50, y: canvas.height+50, r: 45, c: balloonColors[Math.floor(Math.random()*4)], s: 1.4 });
+            // 怪獸
+            if(Math.random() < 0.012) monsters.push({ x: Math.random()*(canvas.width-100)+50, y: -50, r: 40, s: 1.1 });
         }
-        update() { this.y -= this.speed; }
-        draw() {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            // 銀色漸層質感
-            const grad = ctx.createRadialGradient(0,0,0,0,0,this.radius);
-            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#CFD8DC');
-            ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = "#90A4AE"; ctx.lineWidth = 3; ctx.stroke();
-            // 文字繪製 (直線移動，不晃動)
-            ctx.fillStyle = "#263238"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center";
-            const lines = this.text.match(/.{1,6}/g) || [this.text];
-            lines.forEach((l, i) => ctx.fillText(l, 0, (i*16) - (lines.length*8) + 8));
-            ctx.restore();
-        }
-    }
-
-    function nextWave() {
-        if (currentWave >= 10) { endGame(); return; }
-        const qData = activeDB[currentWave];
-        document.getElementById('q-board').innerText = qData.q;
-        document.getElementById('wave-ui').innerText = `${currentWave + 1}/10`;
-        orbs = [];
-        const spacing = canvas.width / 5; // 4 個選項
-        const opts = qData.opts.map((t, i) => ({ t, c: i === 0 }));
-        opts.sort(() => Math.random() - 0.5);
-        opts.forEach((o, i) => orbs.push(new Balloon(o.t, o.c, (i+1) * spacing)));
-        currentWave++;
+        setTimeout(spawnItems, 100);
     }
 
     function loop() {
         if (!gameActive) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 畫地面
-        ctx.fillStyle = "#90EE90";
-        ctx.fillRect(0, canvas.height - 110, canvas.width, 110);
+        if (!quizMode) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 畫地與房
+            ctx.fillStyle = "#90EE90"; ctx.fillRect(0, canvas.height-110, canvas.width, 110);
+            for(let i=0; i<houseCount; i++) drawHouse(20+i*70, canvas.height-110);
 
-        // 畫房屋
-        for(let i=0; i<houseCount; i++) drawHouse(25 + i*65, canvas.height - 110);
-
-        let waveOver = false;
-        orbs.forEach(o => {
-            if (!o.popped) { o.update(); o.draw(); if (o.y < -100) waveOver = true; }
-        });
-
-        if (waveOver) {
-            const correctOne = orbs.find(o => o.isCorrect);
-            if(!correctOne.popped) {
-                if(houseCount > 0) houseCount--;
-                mistakes.push(activeDB[currentWave-1]);
-                playSound(110, 'sawtooth', 0.4);
+            // 更新氣球 (純垂直不晃動)
+            for(let i=balloons.length-1; i>=0; i--) {
+                balloons[i].y -= balloons[i].s; drawBalloon(balloons[i]);
+                if(balloons[i].y < -100) balloons.splice(i, 1);
             }
-            updateHUD(); nextWave();
+
+            // 更新怪獸 (純垂直不晃動)
+            for(let i=monsters.length-1; i>=0; i--) {
+                monsters[i].y += monsters[i].s; drawMonster(monsters[i]);
+                if(monsters[i].y > canvas.height-130) {
+                    monsters.splice(i, 1);
+                    if(houseCount > 0) houseCount--;
+                    playSound(110, 'sawtooth', 0.5);
+                }
+            }
         }
         requestAnimationFrame(loop);
     }
 
+    function drawBalloon(b) {
+        ctx.save(); ctx.translate(b.x, b.y);
+        ctx.fillStyle = b.c; ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.1)"; ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawMonster(m) {
+        ctx.fillStyle = varColor('--monster');
+        ctx.beginPath(); ctx.moveTo(m.x, m.y-m.r); ctx.lineTo(m.x+m.r, m.y+m.r); ctx.lineTo(m.x-m.r, m.y+m.r); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.fillRect(m.x-10, m.y, 5, 5); ctx.fillRect(m.x+5, m.y, 5, 5);
+    }
+
     function drawHouse(x, y) {
-        ctx.fillStyle = "#FF7043"; ctx.fillRect(x, y - 40, 50, 40);
-        ctx.beginPath(); ctx.moveTo(x - 5, y - 40); ctx.lineTo(x + 25, y - 65); ctx.lineTo(x + 55, y - 40);
-        ctx.fillStyle = "#D84315"; ctx.fill();
+        ctx.fillStyle = varColor('--house'); ctx.fillRect(x, y-40, 50, 40);
+        ctx.fillStyle = "#D84315"; ctx.beginPath(); ctx.moveTo(x-5, y-40); ctx.lineTo(x+25, y-65); ctx.lineTo(x+55, y-40); ctx.fill();
         ctx.fillStyle = "#fff"; ctx.fillRect(x+15, y-20, 20, 20);
     }
 
-    function handleInput(ex, ey) {
-        if (!gameActive) return;
-        for (let o of orbs) {
-            const dist = Math.hypot(ex - o.x, ey - o.y);
-            if (dist < o.radius + 15 && !o.popped) {
-                o.popped = true;
-                if (o.isCorrect) {
-                    houseCount++; score += 10;
-                    playSound(523, 'sine', 0.2); setTimeout(() => playSound(659, 'sine', 0.2), 60);
-                } else {
-                    if(houseCount > 0) houseCount--;
-                    mistakes.push(activeDB[currentWave-1]);
-                    playSound(110, 'sawtooth', 0.4);
-                    // 螢幕震動
-                    document.body.style.transform = "translateX(10px)";
-                    setTimeout(() => document.body.style.transform = "translateX(-10px)", 50);
-                    setTimeout(() => document.body.style.transform = "translateX(0)", 100);
-                }
-                updateHUD(); setTimeout(nextWave, 400); break;
-            }
+    function handleInteraction(ex, ey) {
+        if(!gameActive || quizMode) return;
+        for(let i=0; i<monsters.length; i++) {
+            if(Math.hypot(ex-monsters[i].x, ey-monsters[i].y) < 60) { showQuiz(monsters[i], 'monster', i); return; }
+        }
+        for(let i=0; i<balloons.length; i++) {
+            if(Math.hypot(ex-balloons[i].x, ey-balloons[i].y) < 60) { showQuiz(balloons[i], 'balloon', i); return; }
         }
     }
 
-    function updateHUD() {
-        document.getElementById('house-count').innerText = houseCount;
+    function showQuiz(obj, type, idx) {
+        quizMode = true;
+        const qData = activeDB[Math.floor(Math.random()*activeDB.length)];
+        const overlay = document.getElementById('quiz-overlay');
+        overlay.style.display = 'block';
+        document.getElementById('q-text').innerText = qData.q;
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        
+        qData.opts.forEach((o, i) => {
+            const b = document.createElement('button');
+            b.className = 'opt-btn'; b.innerText = o;
+            b.onclick = () => {
+                if(i === qData.ans) {
+                    houseCount++; playSound(523, 'sine', 0.2);
+                } else {
+                    if(houseCount > 0) houseCount--;
+                    mistakes.push(qData); playSound(110, 'sawtooth', 0.4);
+                }
+                overlay.style.display = 'none';
+                quizMode = false;
+                if(type==='monster') monsters.splice(idx, 1);
+                else balloons.splice(idx, 1);
+                document.getElementById('house-count').innerText = houseCount;
+                if(houseCount >= 5) endGame(true);
+            };
+            container.appendChild(b);
+        });
     }
 
-    canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
-    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleInput(e.touches[0].clientX, e.touches[0].clientY); });
+    canvas.addEventListener('mousedown', e => handleInteraction(e.clientX, e.clientY));
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleInteraction(e.touches[0].clientX, e.touches[0].clientY); });
 
-    function endGame() {
-        gameActive = false; clearInterval(bgmTimer);
-        document.getElementById('q-board').style.display = 'none';
+    function varColor(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+    function endGame(win) {
+        gameActive = false; quizMode = false; clearInterval(bgmTimer);
+        document.getElementById('quiz-overlay').style.display = 'none';
         document.getElementById('hud').style.display = 'none';
-        
-        const title = document.getElementById('result-title');
-        title.innerText = houseCount >= 5 ? "🏆 挑戰成功！全能築夢師" : "🚧 城市受損，請再接再厲";
+        const t = document.getElementById('result-title');
+        t.innerText = win ? "🏆 築夢成功！健康守護者" : "🚧 城市受損，再接再厲";
         document.getElementById('final-houses').innerText = houseCount;
-
         const list = document.getElementById('review-list');
-        list.innerHTML = '<h3>📝 衛教重點回顧：</h3>';
-        mistakes.forEach(m => {
-            const div = document.createElement('div');
-            div.className = 'review-card';
-            div.innerHTML = `<strong>Q: ${m.q}</strong><br>✅ 正解：${m.opts[0]}<br>💡 解析：${m.exp}`;
-            list.appendChild(div);
+        list.innerHTML = '<h3>📝 複習筆記：</h3>';
+        [...new Set(mistakes)].forEach(m => {
+            const d = document.createElement('div'); d.className='review-card';
+            d.innerHTML = `<strong>Q: ${m.q}</strong><br>✅ 正解：${m.opts[m.ans]}<br>💡 解析：${m.exp}`;
+            list.appendChild(d);
         });
         document.getElementById('end-screen').classList.add('active');
     }
