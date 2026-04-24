@@ -3,22 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🏠 知識小學堂：健康築夢師 2.0</title>
+    <title>🏠 知識小學堂：藍磚築夢師 Pro 2.0</title>
     <style>
         :root {
             --sky: #A1C4FD;
             --grass: #81C784;
-            --house: #FF7043;
+            --brick: #2196F3;
             --monster: #9C27B0;
             --board: #2C3E50;
         }
-
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--sky); overflow: hidden; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
-
         canvas { display: block; cursor: crosshair; }
-
-        /* UI 層次 */
         .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
         .screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -28,29 +24,23 @@
         }
         .screen.active { display: block; animation: bounceIn 0.5s ease; }
         @keyframes bounceIn { from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; } }
-
-        /* 題目彈窗 */
         #quiz-overlay {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 92%; max-width: 550px; background: var(--board); color: #fff; padding: 25px;
             border-radius: 20px; border: 4px solid #fff; text-align: center; z-index: 200;
             display: none; pointer-events: auto; box-shadow: 0 0 100px rgba(0,0,0,0.5);
         }
-
         .opt-btn {
             width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 12px;
             font-size: 1.1em; font-weight: bold; cursor: pointer; background: #fff; color: var(--board); transition: 0.1s;
         }
         .opt-btn:active { background: #E0F2F1; transform: scale(0.98); }
-
         #hud { position: absolute; bottom: 130px; width: 100%; padding: 0 25px; display: flex; justify-content: space-between; font-weight: 900; color: #2C3E50; pointer-events: none; z-index: 50; }
-
         .btn { width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 50px; font-size: 1.2em; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
         .btn-theme { background: #4DB6AC; box-shadow: 0 6px 0 #00897B; }
-        .btn-start { background: var(--house); box-shadow: 0 6px 0 #E64A19; }
-
-        .tutorial-item { text-align: left; background: #FDF2E9; padding: 12px; border-radius: 15px; margin: 10px 0; font-size: 0.9em; border-left: 5px solid var(--house); }
-        .review-card { text-align: left; background: #fdfcfb; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 6px solid var(--house); font-size: 0.85em; }
+        .btn-start { background: #FF7043; box-shadow: 0 6px 0 #E64A19; }
+        .tutorial-item { text-align: left; background: #FDF2E9; padding: 12px; border-radius: 15px; margin: 10px 0; font-size: 0.9em; border-left: 5px solid #FF7043; line-height: 1.5; }
+        .review-card { text-align: left; background: #fdfcfb; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 6px solid #FF7043; font-size: 0.85em; }
     </style>
 </head>
 <body>
@@ -61,31 +51,32 @@
 </div>
 
 <div id="hud" style="display: none;">
-    <div>🏠 城市規模: <span id="house-count">0</span>/5</div>
-    <div style="color: var(--monster);">👾 迷思怪獸入侵中</div>
+    <div>🟦 累積磚塊: <span id="house-count">0</span>/5</div>
+    <div>🎯 進度: <span id="wave-progress">1</span>/20</div>
 </div>
 
 <div class="ui-layer">
     <div id="menu-screen" class="screen active">
         <h1 style="color: #FF6B6B;">🏫 知識小學堂</h1>
-        <p><strong>🏗️ 健康城市築夢計畫</strong></p>
-        <p>請選擇您的防衛主題：</p>
+        <p><strong>🏗️ 藍磚防禦：20題極速挑戰</strong></p>
+        <p>請選擇任務主題：</p>
         <button class="btn btn-theme" onclick="prepareTutorial('chronic')">🛡️ 慢性病防護任務</button>
         <button class="btn btn-theme" onclick="prepareTutorial('diet')">🥗 健康飲食大賽</button>
     </div>
 
     <div id="tutorial-screen" class="screen">
-        <h2 style="color: var(--house);">📜 任務簡報</h2>
-        <div class="tutorial-item">🎈 <b>點擊彩色氣球：</b>會跳出題目，答對即可建設一間房子。</div>
-        <div class="tutorial-item">👾 <b>阻止降落怪獸：</b>怪獸會從上方垂直落下。若點擊並答對題目可擊退牠；若落地則會拆掉房子！</div>
-        <div class="tutorial-item">🏆 <b>勝利條件：</b>在 10 題內蓋滿 5 間房。</div>
-        <button class="btn btn-start" onclick="startGame()">啟動系統 🚀</button>
+        <h2 style="color: var(--board);">🎮 玩法規則</h2>
+        <div class="tutorial-item">🎈 <b>氣球建設：</b>點擊氣球回答正確，獲得藍色磚頭。</div>
+        <div class="tutorial-item">👾 <b>怪獸防禦：</b>在怪獸落地前點擊牠，答對可擊退；若落地則<b>扣除磚塊</b>！</div>
+        <div class="tutorial-item">⚡ <b>極速挑戰：</b>20 題隨機不重複，速度非常快。</div>
+        <div class="tutorial-item">🏆 <b>目標：</b>在 20 題內保住至少 <b>5 塊磚頭</b>。</div>
+        <button class="btn btn-start" onclick="startGame()">正式啟動系統 🚀</button>
     </div>
 
     <div id="end-screen" class="screen">
         <h1 id="result-title"></h1>
-        <p>最終城市保存數：<span id="final-houses" style="font-size: 2.2em; color: var(--house);">0</span></p>
-        <div id="review-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; text-align: left;"></div>
+        <p>最終磚頭總數：<span id="final-houses" style="font-size: 2.2em; color: var(--brick);">0</span></p>
+        <div id="review-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px; text-align: left;"></div>
         <button class="btn btn-start" onclick="location.reload()">重新挑戰 🔄</button>
     </div>
 </div>
@@ -93,9 +84,9 @@
 <canvas id="gameCanvas"></canvas>
 
 <script>
-    // --- 專業音效與音樂合成引擎 ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     let bgmTimer;
+
     function playSound(f, t, d, v=0.1) {
         const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
         o.type=t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
@@ -104,39 +95,75 @@
         o.connect(g); g.connect(audioCtx.destination);
         o.start(); o.stop(audioCtx.currentTime+d);
     }
+    
     function startBGM() {
-        let s=0; const m=[261, 329, 392, 523];
-        bgmTimer = setInterval(() => { if(gameActive && !quizMode) { playSound(m[s%4], 'sine', 0.5, 0.02); s++; } }, 400);
+        let s=0; const m=[261, 329, 392, 523, 440, 392];
+        if(bgmTimer) clearInterval(bgmTimer);
+        bgmTimer = setInterval(() => { if(gameActive && !quizMode) { playSound(m[s%6], 'sine', 0.6, 0.03); s++; } }, 450);
     }
 
-    // --- 題庫 ---
+    // --- 完整 20 題不重複題庫 ---
     const DB_CHRONIC = [
-        { q: "代謝症候群判定指標，男腰圍應？", opts: ["小於 90cm", "越寬越有福氣", "大於 100cm", "只要體重輕"], ans: 0, exp: "男≧90, 女≧80cm 為指標。"},
-        { q: "糖尿病患者哪種飲食原則正確？", opts: ["優先選低GI食物", "絕對不吃澱粉", "多吃精緻澱粉", "只喝果汁代水"], ans: 0, exp: "低GI食物消化慢，血糖波動小。"},
-        { q: "預防高血壓，鈉每日建議上限？", opts: ["低於2400mg", "不需限制鹽分", "高於5000mg", "多吃醬料沒關係"], ans: 0, exp: "2400mg鈉約為6g鹽，保護心血管。"},
-        { q: "血壓低於多少 mmHg 為正常？", opts: ["120/80 以下", "140/90 左右", "只要不頭痛就正常", "160/100 以上"], ans: 0, exp: "維持 120/80 以下是預防中風的關鍵。"},
-        { q: "關於腎臟病，哪項行為較佳？", opts: ["不亂吃止痛成藥", "渴了才喝水", "多喝運動飲料", "每天吃沾醬肉類"], ans: 0, exp: "亂服藥物會嚴重加重腎臟負擔。"}
+        { q: "男腰圍標準應？", opts: ["小於 90cm", "越寬越好", "大於 100cm", "無所謂"], ans: 0, exp: "男≧90cm為代謝症候群指標。"},
+        { q: "糖尿病飲食選？", opts: ["低GI食物", "不吃澱粉", "多吃糖", "精緻糕點"], ans: 0, exp: "低GI有助穩定血糖。"},
+        { q: "鈉每日建議上限？", opts: ["2400mg", "不限", "5000mg", "越鹹越好"], ans: 0, exp: "2400mg約為6g鹽。"},
+        { q: "血壓正常範圍？", opts: ["120/80以下", "140/90", "沒頭痛就好", "越多越好"], ans: 0, exp: "維持120/80以下防中風。"},
+        { q: "腎臟病應避免？", opts: ["亂吃成藥", "喝白開水", "量血壓", "吃青菜"], ans: 0, exp: "藥物代謝加重腎負擔。"},
+        { q: "肥胖 BMI 標準？", opts: ["大於等於27", "大於18", "低於24", "超過22"], ans: 0, exp: "27以上判定為肥胖。"},
+        { q: "得舒飲食特色？", opts: ["高纖低脂", "全肉餐", "禁喝水", "只炸雞"], ans: 0, exp: "防治高血壓首選飲食。"},
+        { q: "有氧運動增加？", opts: ["好膽固醇", "壞膽固醇", "血壓", "酸痛"], ans: 0, exp: "提升HDL保護心血管。"},
+        { q: "慢性病特徵？", opts: ["早期無症狀", "只有老人得", "有病再吃藥", "傳染性高"], ans: 0, exp: "沈默殺手，預防最重要。"},
+        { q: "中風辨識？", opts: ["FAST原則", "333原則", "85210", "BMI"], ans: 0, exp: "口訣協助快速判斷症狀。"},
+        { q: "高尿酸應？", opts: ["多喝水", "多喝酒", "少喝水", "多吃內臟"], ans: 0, exp: "水分有助尿酸排出。"},
+        { q: "糖尿病應？", opts: ["定時定量", "渴才喝水", "隨便吃", "絕不吃糖"], ans: 0, exp: "餐次穩定有助控制血糖。"},
+        { q: "反式脂肪會？", opts: ["升壞膽固醇", "降好膽固醇", "保護心臟", "無害"], ans: 0, exp: "多存在於加工糕點中。"},
+        { q: "健檢目的？", opts: ["早發現預防", "應付醫生", "生病再去", "求安心"], ans: 0, exp: "防微杜漸是核心價值。"},
+        { q: "血壓量測？", opts: ["定期居家測", "頭暈才量", "體檢才量", "不用量"], ans: 0, exp: "長期紀錄比單次準確。"},
+        { q: "戒菸可保護？", opts: ["心血管", "無關健康", "僅保護肺", "胃部"], ans: 0, exp: "尼古丁嚴重損害內皮。"},
+        { q: "第二型糖尿病？", opts: ["胰島素阻抗", "天生缺乏", "僅關體重", "傳染病"], ans: 0, exp: "與生活作息高度相關。"},
+        { q: "高血脂應？", opts: ["減飽和脂肪", "加飽和脂肪", "少喝水", "多吃豬油"], ans: 0, exp: "飽和脂肪會阻塞血管。"},
+        { q: "慢性病防禦？", opts: ["預防勝治療", "生病再看", "靠偏方", "不運動"], ans: 0, exp: "建立良好習慣是根本。"},
+        { q: "運動量？", opts: ["週150分", "分次無效", "流汗就好", "一月一次"], ans: 0, exp: "中強度運動累積才有效。"}
     ];
     const DB_DIET = [
-        { q: "『85210』中的 0 代表什麼？", opts: ["0含糖飲料", "0運動量", "0睡覺時間", "不吃早餐"], ans: 0, exp: "水是最好的補水來源，遠離糖分。" },
-        { q: "天天攝取多少蔬果才正確？", opts: ["3份蔬菜2份水果", "5份全吃肉", "全喝果汁取代", "只吃水果不吃菜"], ans: 0, exp: "3蔬2果能確保纖維與植化素攝取。" },
-        { q: "『85210』中的 8 是代表？", opts: ["睡足8小時", "喝8杯珍奶", "看電視8小時", "走8步路"], ans: 0, exp: "充足睡眠是修復代謝的基礎。" },
-        { q: "我的餐盤中，水果份量建議？", opts: ["每餐一個拳頭大", "一整顆大西瓜", "完全不吃", "10粒葡萄"], ans: 0, exp: "拳頭大小能控制糖分攝取量。" },
-        { q: "1 是代表每天活動多久？", opts: ["累積 60 分鐘", "只要 1 分鐘", "休息 1 小時", "看書 1 小時"], ans: 0, exp: "1 代表每天累積一小時活動。" }
+        { q: "85210 的 0？", opts: ["0含糖飲料", "0運動", "0讀書", "不睡覺"], ans: 0, exp: "白開水是最佳水分來源。"},
+        { q: "天天蔬果？", opts: ["3蔬2果", "5份全肉", "只喝果汁", "不吃水果"], ans: 0, exp: "確保纖維與植化素足夠。"},
+        { q: "85210 的 8？", opts: ["睡足8小時", "看電視8時", "喝8杯珍奶", "跑8步"], ans: 0, exp: "睡眠有助代謝修復。"},
+        { q: "水果量？", opts: ["一個拳頭", "整顆西瓜", "不准吃", "10粒葡萄"], ans: 0, exp: "適量攝取控制糖分。"},
+        { q: "全穀類比例？", opts: ["大於1/3", "完全不吃", "全部白米", "只吃麵包"], ans: 0, exp: "全穀含豐富B群與纖維。"},
+        { q: "白開水補水？", opts: ["分次少量喝", "口渴暴飲", "加糖好喝", "只喝咖啡"], ans: 0, exp: "維持代謝與各器官運作。"},
+        { q: "進食順序？", opts: ["先菜後肉", "先甜點", "只吃白飯", "先喝湯"], ans: 0, exp: "先吃菜可平穩血糖波動。"},
+        { q: "蛋白質優先？", opts: ["豆魚蛋肉", "肉蛋魚豆", "全吃肥肉", "不吃豆"], ans: 0, exp: "植物性蛋白對血管佳。"},
+        { q: "85210 的 2？", opts: ["螢幕<2小時", "吃2餐", "喝2公升汽水", "睡2時"], ans: 0, exp: "減少靜態坐姿時間。"},
+        { q: "85210 的 1？", opts: ["運動1小時", "不睡覺", "看書1時", "不社交"], ans: 0, exp: "每天累積60分中強度活動。"},
+        { q: "蛋白質份量？", opts: ["一個掌心", "一個臉大", "完全不吃", "兩大牛排"], ans: 0, exp: "控制油脂與熱量攝取。"},
+        { q: "隱形鹽？", opts: ["加工食品", "白開水", "原型蔬菜", "水果"], ans: 0, exp: "火腿、罐頭鈉含量極高。"},
+        { q: "彩虹飲食？", opts: ["顏色多樣化", "只吃綠色", "全白飲食", "不吃皮"], ans: 0, exp: "不同顏色代表不同植化素。"},
+        { q: "精緻糖上限？", opts: ["總熱量10%下", "越多越好", "不需限制", "每日1公斤"], ans: 0, exp: "過多糖分導致代謝負擔。"},
+        { q: "鈣質來源？", opts: ["低脂乳品", "汽水", "精緻白米", "含糖珍奶"], ans: 0, exp: "每日1.5-2杯牛奶補充鈣。"},
+        { q: "膳食纖維？", opts: ["預防便祕", "導致發胖", "無營養", "增加血壓"], ans: 0, exp: "延緩血糖上升與飽足感。"},
+        { q: "加工肉品？", opts: ["應減少攝取", "多吃有益", "不含鈉", "優質蛋白"], ans: 0, exp: "與多種慢性病風險相關。"},
+        { q: "正餐原則？", opts: ["原型食物", "全是微波", "只吃炸雞", "不吃澱粉"], ans: 0, exp: "少加工、少調味最健康。"},
+        { q: "喝水時機？", opts: ["少量多次", "飯後狂飲", "渴才找水", "不喝水"], ans: 0, exp: "分次補充能更有效吸收。"},
+        { q: "乳品份量？", opts: ["每天兩杯", "一月一杯", "完全取代水", "不攝取"], ans: 0, exp: "骨骼健康的基礎。"}
     ];
 
-    // --- 系統變數 ---
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     let gameActive = false, quizMode = false, houseCount = 0;
-    let activeDB = [], balloons = [], monsters = [], mistakes = [];
+    let activeDB = [], qPool = [], qIndex = 0, balloons = [], monsters = [], mistakes = [];
     const balloonColors = ['#B2EBF2', '#FFCCBC', '#FFF9C4', '#E1BEE7'];
 
     function prepareTutorial(theme) {
-        activeDB = theme==='chronic'?DB_CHRONIC:DB_DIET;
+        let raw = theme==='chronic'?DB_CHRONIC:DB_DIET;
+        // 20 題洗牌
+        qPool = [...raw].sort(() => Math.random() - 0.5);
+        qIndex = 0;
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('tutorial-screen').classList.add('active');
     }
+
+    function selectTheme(t) { prepareTutorial(t); }
 
     function startGame() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -151,10 +178,9 @@
     function spawnItems() {
         if(!gameActive) return;
         if(!quizMode) {
-            // 氣球
-            if(Math.random() < 0.05) balloons.push({ x: Math.random()*(canvas.width-100)+50, y: canvas.height+50, r: 45, c: balloonColors[Math.floor(Math.random()*4)], s: 1.4 });
-            // 怪獸
-            if(Math.random() < 0.012) monsters.push({ x: Math.random()*(canvas.width-100)+50, y: -50, r: 40, s: 1.1 });
+            // 大幅提升頻率：每 100ms 進行一次高機率判定
+            if(Math.random() < 0.15) balloons.push({ x: Math.random()*(canvas.width-100)+50, y: canvas.height+50, r: 45, c: balloonColors[Math.floor(Math.random()*4)], s: 3.8 });
+            if(Math.random() < 0.05) monsters.push({ x: Math.random()*(canvas.width-100)+50, y: -50, r: 40, s: 2.8 });
         }
         setTimeout(spawnItems, 100);
     }
@@ -163,23 +189,19 @@
         if (!gameActive) return;
         if (!quizMode) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 畫地與房
             ctx.fillStyle = "#90EE90"; ctx.fillRect(0, canvas.height-110, canvas.width, 110);
-            for(let i=0; i<houseCount; i++) drawHouse(20+i*70, canvas.height-110);
+            for(let i=0; i<houseCount; i++) drawBrick(20+i*85, canvas.height-110);
 
-            // 更新氣球 (純垂直不晃動)
             for(let i=balloons.length-1; i>=0; i--) {
                 balloons[i].y -= balloons[i].s; drawBalloon(balloons[i]);
                 if(balloons[i].y < -100) balloons.splice(i, 1);
             }
-
-            // 更新怪獸 (純垂直不晃動)
             for(let i=monsters.length-1; i>=0; i--) {
                 monsters[i].y += monsters[i].s; drawMonster(monsters[i]);
                 if(monsters[i].y > canvas.height-130) {
                     monsters.splice(i, 1);
                     if(houseCount > 0) houseCount--;
-                    playSound(110, 'sawtooth', 0.5);
+                    playSound(110, 'sawtooth', 0.5, 0.2);
                 }
             }
         }
@@ -199,10 +221,10 @@
         ctx.fillStyle = "#fff"; ctx.fillRect(m.x-10, m.y, 5, 5); ctx.fillRect(m.x+5, m.y, 5, 5);
     }
 
-    function drawHouse(x, y) {
-        ctx.fillStyle = varColor('--house'); ctx.fillRect(x, y-40, 50, 40);
-        ctx.fillStyle = "#D84315"; ctx.beginPath(); ctx.moveTo(x-5, y-40); ctx.lineTo(x+25, y-65); ctx.lineTo(x+55, y-40); ctx.fill();
-        ctx.fillStyle = "#fff"; ctx.fillRect(x+15, y-20, 20, 20);
+    function drawBrick(x, y) {
+        ctx.fillStyle = "#1976D2"; ctx.fillRect(x, y-45, 75, 40);
+        ctx.fillStyle = "#42A5F5"; ctx.fillRect(x+2, y-43, 71, 36);
+        ctx.fillStyle = "rgba(255,255,255,0.3)"; ctx.fillRect(x+2, y-43, 71, 10);
     }
 
     function handleInteraction(ex, ey) {
@@ -217,7 +239,10 @@
 
     function showQuiz(obj, type, idx) {
         quizMode = true;
-        const qData = activeDB[Math.floor(Math.random()*activeDB.length)];
+        const qData = qPool[qIndex % qPool.length];
+        qIndex++;
+        document.getElementById('wave-progress').innerText = qIndex;
+        
         const overlay = document.getElementById('quiz-overlay');
         overlay.style.display = 'block';
         document.getElementById('q-text').innerText = qData.q;
@@ -229,17 +254,16 @@
             b.className = 'opt-btn'; b.innerText = o;
             b.onclick = () => {
                 if(i === qData.ans) {
-                    houseCount++; playSound(523, 'sine', 0.2);
+                    houseCount++; playSound(659, 'sine', 0.2, 0.2);
                 } else {
                     if(houseCount > 0) houseCount--;
-                    mistakes.push(qData); playSound(110, 'sawtooth', 0.4);
+                    mistakes.push(qData); playSound(110, 'sawtooth', 0.4, 0.3);
                 }
-                overlay.style.display = 'none';
-                quizMode = false;
+                overlay.style.display = 'none'; quizMode = false;
                 if(type==='monster') monsters.splice(idx, 1);
                 else balloons.splice(idx, 1);
                 document.getElementById('house-count').innerText = houseCount;
-                if(houseCount >= 5) endGame(true);
+                if(qIndex >= 20) endGame(houseCount >= 5);
             };
             container.appendChild(b);
         });
@@ -255,15 +279,18 @@
         document.getElementById('quiz-overlay').style.display = 'none';
         document.getElementById('hud').style.display = 'none';
         const t = document.getElementById('result-title');
-        t.innerText = win ? "🏆 築夢成功！健康守護者" : "🚧 城市受損，再接再厲";
+        t.innerText = win ? "🏆 築夢成功！健康守護者" : "🚧 地基受損，再接再厲";
         document.getElementById('final-houses').innerText = houseCount;
         const list = document.getElementById('review-list');
-        list.innerHTML = '<h3>📝 複習筆記：</h3>';
-        [...new Set(mistakes)].forEach(m => {
-            const d = document.createElement('div'); d.className='review-card';
-            d.innerHTML = `<strong>Q: ${m.q}</strong><br>✅ 正解：${m.opts[m.ans]}<br>💡 解析：${m.exp}`;
-            list.appendChild(d);
-        });
+        list.innerHTML = '<h3>📝 20 題結算回顧：</h3>';
+        if(mistakes.length === 0) list.innerHTML += "<p>天啊！你是健康天才，完全沒答錯！</p>";
+        else {
+            [...new Set(mistakes.map(m => JSON.stringify(m)))].map(s => JSON.parse(s)).forEach(m => {
+                const d = document.createElement('div'); d.className='review-card';
+                d.innerHTML = `<strong>Q: ${m.q}</strong><br>✅ 正解：${m.opts[m.ans]}<br>💡 解析：${m.exp}`;
+                list.appendChild(d);
+            });
+        }
         document.getElementById('end-screen').classList.add('active');
     }
 </script>
