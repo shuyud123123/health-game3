@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🏫 知識小學堂：主題大冒險</title>
+    <style>
+        :root {
+            --primary-color: #4DB6AC;
+            --secondary-color: #FF8A65;
+            --bg-color: #F0F4F8;
+            --chalkboard: #34495E;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); color: #333; overflow: hidden; font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif; }
+
+        canvas { display: block; }
+
+        /* UI 層次 */
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; pointer-events: none; }
+        .screen {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 500px; padding: 30px; background: white;
+            border-radius: 30px; text-align: center; display: none; pointer-events: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1); border: 6px solid #fff;
+        }
+        .screen.active { display: block; }
+
+        /* 題目板 */
+        #q-board {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            width: 92%; max-width: 550px; background: var(--chalkboard);
+            color: #fff; padding: 18px; border-radius: 15px; border: 4px solid #A1887F;
+            text-align: center; font-size: 1.1em; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 50; display: none;
+        }
+
+        /* 按鈕樣式 */
+        .menu-btn {
+            width: 100%; padding: 20px; margin: 15px 0; border: none; border-radius: 20px;
+            font-size: 1.3em; font-weight: bold; cursor: pointer; transition: 0.2s;
+            color: white; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-chronic { background: #546E7A; box-shadow: 0 6px 0 #37474F; }
+        .btn-diet { background: #81C784; box-shadow: 0 6px 0 #66BB6A; }
+        .menu-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #333; }
+
+        #hud { position: absolute; bottom: 20px; width: 100%; padding: 0 20px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em; pointer-events: none; }
+
+        /* 複習內容 */
+        .review-card { text-align: left; background: #F9F9F9; padding: 15px; border-radius: 15px; margin-bottom: 12px; border-left: 5px solid var(--secondary-color); font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div id="q-board">題目載入中...</div>
+
+<div id="hud" style="display: none;">
+    <div>🏆 積分: <span id="score-ui">0</span></div>
+    <div>📌 進度: <span id="wave-ui">1/10</span></div>
+</div>
+
+<div class="ui-layer">
+    <div id="menu-screen" class="screen active">
+        <h1 style="color: var(--primary-color);">🏫 知識小學堂</h1>
+        <p>請選擇今日的冒險主題：</p>
+        <button class="menu-btn btn-chronic" onclick="prepareGame('chronic')">🛡️ 慢性病防衛館</button>
+        <button class="menu-btn btn-diet" onclick="prepareGame('diet')">🍎 營養膳食館</button>
+    </div>
+
+    <div id="intro-screen" class="screen">
+        <h2 id="intro-title">任務啟動</h2>
+        <p id="intro-desc"></p>
+        <button class="menu-btn" style="background: var(--secondary-color); box-shadow: 0 6px 0 #E64A19;" onclick="startGame()">接受挑戰 🚀</button>
+    </div>
+
+    <div id="end-screen" class="screen">
+        <h1 id="rank-title">稱號判定中</h1>
+        <p>冒險積分：<span id="final-score" style="font-size: 2em; color: var(--secondary-color);">0</span></p>
+        <div id="review-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <button class="menu-btn btn-diet" onclick="location.reload()">回到地圖 🗺️</button>
+    </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gameActive = false;
+    let score = 0;
+    let currentWave = 0;
+    let orbs = [];
+    let mistakes = [];
+    let selectedType = '';
+
+    const QUIZ_CHRONIC = [
+        { q: "關於高血壓防治，鈉建議攝取量？", options: ["每日低於2400mg", "不需限制鹽分", "喝運動飲料補水"], ans: 0, exp: "2400mg鈉約為6克鹽，過多會增加血管負擔。" },
+        { q: "糖尿病患者如何穩定血糖？", options: ["選低GI食物", "不吃任何糖分", "多吃精緻澱粉"], ans: 0, exp: "低GI(升糖指數)食物消化較慢，血糖波動較小。" },
+        { q: "哪種運動能增加好膽固醇(HDL)？", options: ["規律有氧運動", "只要流汗就好", "重訓一分鐘"], ans: 0, exp: "規律的中強度有氧運動能有效提升HDL。" },
+        { q: "代謝症候群判定，男腰圍標準？", options: ["小於 90cm", "只要體重輕就好", "100cm也OK"], ans: 0, exp: "男性≧90cm、女性≧80cm為判定指標之一。" },
+        { q: "關於慢性病，哪項敘述正確？", options: ["大多無早期症狀", "是老人的專利", "有感覺再量血壓"], ans: 0, exp: "慢性病常被稱為沈默殺手，早期往往無自覺。" },
+        { q: "腎臟病患者應避免？", options: ["亂吃止痛藥", "多喝含糖飲料", "每天量體重"], ans: 0, exp: "某些成藥會損害腎功能，務必諮詢醫師。" },
+        { q: "高血脂患者應減少攝取？", options: ["飽和脂肪", "所有油脂類", "水分"], ans: 0, exp: "飽和脂肪（如動物油脂）會升高壞膽固醇。" },
+        { q: "得舒(DASH)飲食有助於？", options: ["防治高血壓", "快速減肥", "增加肌肉量"], ans: 0, exp: "DASH飲食強調高鉀、高鎂、高鈣、高纖。" },
+        { q: "定期健康檢查的目的是？", options: ["早期發現預防", "純粹求心安", "生病才要去"], ans: 0, exp: "健檢能發現潛在危險因子，提早介入。" },
+        { q: "BMI 達到多少定義為肥胖？", options: ["大於等於 27", "大於 24", "大於 18.5"], ans: 0, exp: "台灣標準：24-27為過重，27以上為肥胖。" }
+    ];
+
+    const QUIZ_DIET = [
+        { q: "『85210』中的 8 是代表？", options: ["睡足8小時", "喝8杯含糖飲", "走8000步"], ans: 0, exp: "充足睡眠能促進代謝與大腦修復。" },
+        { q: "『85210』中的 5 是指？", options: ["天天5蔬果", "吃5種肉類", "每餐吃5碗飯"], ans: 0, exp: "每天應攝取3份蔬菜、2份水果。" },
+        { q: "『85210』中的 2 是限制？", options: ["看螢幕<2小時", "只吃2餐", "喝2公升可樂"], ans: 0, exp: "減少久坐看螢幕時間能增加身體活動。" },
+        { q: "『85210』中的 1 是指？", options: ["每日運動1小時", "只吃1種菜", "每餐吃1塊肉"], ans: 0, exp: "每天應累積至少60分鐘的中強度活動。" },
+        { q: "『85210』中的 0 是指？", options: ["0糖飲喝足水", "不運動", "不睡覺"], ans: 0, exp: "不喝含糖飲料，改喝白開水。 " },
+        { q: "我的餐盤：每餐水果份量？", options: ["拳頭大小", "吃到飽", "一粒葡萄"], ans: 0, exp: "每餐水果一個拳頭大，攝取維生素C。" },
+        { q: "我的餐盤：豆魚蛋肉類建議？", options: ["掌心大小", "兩塊大牛排", "不吃蛋白質"], ans: 0, exp: "選優質蛋白質，份量約一個掌心厚度。" },
+        { q: "全穀雜糧類建議佔澱粉？", options: ["至少 1/3", "完全不吃", "全部吃白米"], ans: 0, exp: "全穀類含有更多維生素B群與纖維。" },
+        { q: "關於口渴時的選擇？", options: ["喝白開水", "喝運動飲料", "喝珍珠奶茶"], ans: 0, exp: "白開水是人體最健康的補水選擇。" },
+        { q: "吃飯時的建議順序？", options: ["先吃菜再吃肉", "先吃甜點", "只吃澱粉"], ans: 0, exp: "先吃蔬菜增加飽足感，有助於血糖穩定。" }
+    ];
+
+    let activeQuiz = [];
+
+    function prepareGame(type) {
+        selectedType = type;
+        document.getElementById('menu-screen').classList.remove('active');
+        const intro = document.getElementById('intro-screen');
+        intro.classList.add('active');
+        
+        if(type === 'chronic') {
+            document.getElementById('intro-title').innerText = "🛡️ 慢性病防衛任務";
+            document.getElementById('intro-desc').innerText = "警報！慢性病迷思正在入侵！請準確擊碎錯誤訊息，守護健康核心。";
+            activeQuiz = QUIZ_CHRONIC;
+        } else {
+            document.getElementById('intro-title').innerText = "🍎 營養膳食任務";
+            document.getElementById('intro-desc').innerText = "身體需要優質能量！請收集 85210 與我的餐盤知識，完成營養補給。";
+            activeQuiz = QUIZ_DIET;
+        }
+    }
+
+    function startGame() {
+        document.getElementById('intro-screen').classList.remove('active');
+        document.getElementById('hud').style.display = 'flex';
+        document.getElementById('q-board').style.display = 'block';
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gameActive = true;
+        score = 0; currentWave = 0; mistakes = [];
+        nextWave();
+        requestAnimationFrame(loop);
+    }
+
+    class Balloon {
+        constructor(text, isCorrect, xPos) {
+            this.text = text; this.isCorrect = isCorrect;
+            this.x = xPos; this.y = canvas.height + 100;
+            this.radius = 55; this.speed = 1.6; this.popped = false;
+        }
+        update() { this.y -= this.speed; }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            const grad = ctx.createRadialGradient(0,0,0,0,0,this.radius);
+            grad.addColorStop(0, '#FFFFFF'); grad.addColorStop(1, '#CFD8DC');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#90A4AE"; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = "#263238"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+            const lines = this.text.match(/.{1,6}/g) || [this.text];
+            lines.forEach((l, i) => ctx.fillText(l, 0, (i*16) - (lines.length*8) + 8));
+            ctx.restore();
+        }
+    }
+
+    function nextWave() {
+        if (currentWave >= 10) { endGame(); return; }
+        const qData = activeQuiz[currentWave];
+        document.getElementById('q-board').innerText = qData.q;
+        document.getElementById('wave-ui').innerText = `${currentWave + 1}/10`;
+        
+        orbs = [];
+        const spacing = canvas.width / 4;
+        const options = qData.options.map((t, i) => ({ t, c: i === qData.ans }));
+        options.sort(() => Math.random() - 0.5);
+        options.forEach((opt, i) => {
+            orbs.push(new Balloon(opt.t, opt.c, (i+1) * spacing));
+        });
+        currentWave++;
+    }
+
+    function loop() {
+        if (!gameActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let waveOver = false;
+        for (let i = orbs.length - 1; i >= 0; i--) {
+            const o = orbs[i]; o.update(); o.draw();
+            if (o.y < -100) waveOver = true;
+        }
+        if (waveOver) {
+            const correctOne = orbs.find(o => o.isCorrect);
+            if(!correctOne.popped) mistakes.push(activeQuiz[currentWave-1]);
+            nextWave();
+        }
+        requestAnimationFrame(loop);
+    }
+
+    function handleTap(ex, ey) {
+        if (!gameActive) return;
+        for (let o of orbs) {
+            const dist = Math.hypot(ex - o.x, ey - o.y);
+            if (dist < o.radius + 15 && !o.popped) {
+                o.popped = true;
+                if (o.isCorrect) { score += 10; document.getElementById('score-ui').innerText = score; }
+                else { mistakes.push(activeQuiz[currentWave-1]); }
+                setTimeout(nextWave, 400);
+                break;
+            }
+        }
+    }
+
+    canvas.addEventListener('mousedown', e => handleTap(e.clientX, e.clientY));
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleTap(e.touches[0].clientX, e.touches[0].clientY); });
+
+    function endGame() {
+        gameActive = false;
+        document.getElementById('q-board').style.display = 'none';
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('final-score').innerText = score;
+        const title = document.getElementById('rank-title');
+        if(score >= 90) title.innerText = "🏆 健康大導師";
+        else if(score >= 60) title.innerText = "🌟 活力探險家";
+        else title.innerText = "🌱 健康初學者";
+
+        const list = document.getElementById('review-list');
+        list.innerHTML = '<h3>📝 冒險筆記複習：</h3>';
+        if (mistakes.length === 0) list.innerHTML += "<p>天啊！你全都答對了！</p>";
+        else {
+            [...new Set(mistakes)].forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'review-card';
+                div.innerHTML = `<strong>Q: ${m.q}</strong><br>✅ 正確答案：${m.options[m.ans]}<br>💡 解析：${m.exp}`;
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('end-screen').classList.add('active');
+    }
+</script>
+</body>
+</html>
